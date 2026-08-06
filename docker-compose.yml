@@ -1,6 +1,55 @@
 name: shiftcore-mission-control
 
 services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: smc_gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+    depends_on:
+      - frontend
+      - identity-api
+      - core-api
+      - ai-api
+    networks:
+      - smc_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health/frontend"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smc_frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
+    networks:
+      - smc_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   identity-api:
     build:
       context: ./services/identity-api
@@ -12,8 +61,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
       - ConnectionStrings__DefaultConnection=${IDENTITY_DB_CONNECTION}
-    ports:
-      - "5001:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/identity"]
       interval: 10s
@@ -23,6 +70,59 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - smc_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  core-api:
+    build:
+      context: ./services/core-api
+      dockerfile: Dockerfile
+    container_name: smc_core_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=${CORE_PORT:-3000}
+      - DB_CONNECTION=${CORE_DB_CONNECTION}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health/core"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smc_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ai-api:
+    build:
+      context: ./services/ai-api
+      dockerfile: Dockerfile
+    container_name: smc_ai_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=${AI_PORT:-8000}
+      - AI_MODE=${AI_MODE:-deterministic}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - smc_network
     logging:

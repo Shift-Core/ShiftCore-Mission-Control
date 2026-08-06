@@ -33,8 +33,12 @@ docker compose up --build -d
 - The `-d` flag runs the containers in the background ("detached" mode).
 
 **What happens?**
-- **PostgreSQL (`smc_postgres`)** will start on port `5432`.
-- **Identity API (`smc_identity_api`)** will start on port `5001`. It waits for the database to be healthy, auto-creates the tables, and seeds the `Lead` account.
+- **Gateway (`smc_gateway`)** will start on port `80`. It routes traffic to frontend and APIs.
+- **Frontend (`smc_frontend`)** serves the Vite React application.
+- **Identity API (`smc_identity_api`)** waits for the database, auto-creates tables, and seeds the `Lead` account.
+- **Core API (`smc_core_api`)** provides task/project data.
+- **AI/Data API (`smc_ai_api`)** runs in deterministic mode.
+- **PostgreSQL (`smc_postgres`)** will start and expose port `5432`.
 
 **To view logs:**
 ```bash

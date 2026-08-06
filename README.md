@@ -29,12 +29,12 @@ This repository operates as a monorepo containing multiple microservices, the AP
 
 ```text
 ShiftCore-Mission-Control/
-├── frontend/             # Next.js / React application (UI)
+├── frontend/             # Vite / React application (UI)
 ├── gateway/              # NGINX API Gateway (Reverse Proxy)
 ├── services/             # Backend Microservices
 │   ├── identity-api/     # .NET 8 API (Authentication & Authorization)
 │   ├── core-api/         # Express.js / Node API (Tasks & Projects)
-│   └── ai-api/           # (Future) AI integration for summaries
+│   └── ai-api/           # FastAPI / Python (AI integration for summaries)
 ├── docker-compose.yml    # Root orchestration for the entire stack
 └── setup.md              # Local Environment Setup Guide
 ```
