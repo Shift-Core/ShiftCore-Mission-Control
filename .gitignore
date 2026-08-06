@@ -13,6 +13,8 @@ dist/
 
 # Misc
 .env
+cookies.txt
+*.sh
 .DS_Store
 .env.local
 .env.development.local
