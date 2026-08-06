@@ -10,16 +10,24 @@ The API is built using a modern, feature-based **Vertical Architecture** inside 
 
 ```mermaid
 graph TD
-    Client((Gateway / Client)) -->|HTTP Requests| Endpoints[Endpoints Layer]
+    Client((Gateway / Client))
     
-    subgraph Identity API
-        Endpoints -->|Maps HTTP to Logic| Services[Services Layer]
-        Services -->|Handles Business Logic| DTOs[DTOs / Contracts]
-        Services -->|Queries / Commands| Data[Data Layer EF Core]
-        Data -->|Maps to DB| Models[Domain Models]
+    subgraph Identity_API [Identity API]
+        Endpoints[Endpoints Layer]
+        Services[Services Layer]
+        DTOs[DTOs / Contracts]
+        Data[Data Layer EF Core]
+        Models[Domain Models]
     end
     
-    Data -->|Npgsql Connection| Postgres[(PostgreSQL)]
+    Postgres[(PostgreSQL)]
+
+    Client -->|HTTP Requests| Endpoints
+    Endpoints -->|Maps HTTP to Logic| Services
+    Services -->|Handles Business Logic| DTOs
+    Services -->|Queries / Commands| Data
+    Data -->|Maps to DB| Models
+    Data -->|Npgsql Connection| Postgres
 ```
 
 ### Layer Responsibilities:
