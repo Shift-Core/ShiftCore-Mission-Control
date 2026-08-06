@@ -1,0 +1,34 @@
+name: Identity API CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore services/identity-api/IdentityApi.csproj
+
+      - name: Build Application
+        run: dotnet build services/identity-api/IdentityApi.csproj --no-restore -c Release
+
+      - name: Verify Docker Build
+        run: docker compose build identity-api
