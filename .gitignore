@@ -1,49 +1,53 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+!*.example
+
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
+vendor/
+__pycache__/
+*.pyc
+.Python
+.venv/
+venv/
+env/
 
-# Testing
-coverage/
-
-# Production
-build/
+# Build outputs
 dist/
-.next/
+build/
+bin/
+obj/
+*.dll
+*.exe
+*.so
+*.dylib
 
-# Misc
-.env
-cookies.txt
-*.sh
-!scripts/*.sh
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# .NET / C#
-[Bb]in/
-[Oo]bj/
-[Oo]ut/
-[Tt]est[Rr]esults/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-
-# IDE / Editor
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# IDE / OS
 .idea/
+.vscode/
 *.swp
 *.swo
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+logs/
+tmp/
+temp/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
 
 # Docker
+*.pid
+
+# Local overrides
 docker-compose.override.yml
+compose.override.yml

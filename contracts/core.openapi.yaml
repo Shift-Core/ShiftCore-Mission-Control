@@ -1,0 +1,9 @@
+openapi: 3.0.3
+info:
+  title: ShiftCore Core API
+  version: 0.1.0
+  description: R24-04 contract stub. Full endpoints owned by Abo El Ala.
+paths: {}
+components:
+  schemas: {}
+# Real paths (board, task transition, KPI snapshot, …) will be documented before implementation.

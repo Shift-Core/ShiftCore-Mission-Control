@@ -1,77 +1,52 @@
-<div align="center">
-  <h1>ShiftCore Mission Control</h1>
-  <p>The central hub for project delivery, task management, and team collaboration.</p>
-  
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-  [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)](https://www.postgresql.org/)
-</div>
+# ShiftCore Mission Control
 
----
+Multi-service monorepo for the August 24 release architecture slice.
 
-## The Problem
-Delivery information is spread across Jira, GitHub, chat, meetings, and documents. That makes ownership, current work, blockers, and progress difficult to understand. This project serves as a safe environment for the team to learn estimation, contracts, integration, review, testing, and release discipline.
+**Status:** R24-04 bootstrap baseline (contract only)  
+**Architecture:** System Architecture v0.6 (August 6, 2026)  
+**Database:** single PostgreSQL `shiftcore` with schemas `identity` + `core`  
+**Public entry point:** Nginx only
 
-## MVP (August 24 Release Goal)
-Deliver a small but real vertical slice that uses the actual frontend, gateway, services, database, authentication flow, and runbook. The MVP includes:
-- Starting the reviewed stack from a clean clone.
-- Signing in with a seeded active Lead account.
-- Loading one seeded project, its active sprint, tasks, blockers, and KPIs.
-- Displaying tasks on a three-column board.
-- Moving a `To Do` task to `In Progress` and persisting the change.
-- Requesting a structured weekly-summary preview from the AI/Data API.
+## Runtime Parts
 
----
-
-## Project Structure (Monorepo)
-
-This repository operates as a monorepo containing multiple microservices, the API gateway, and the frontend application.
-
-```text
-ShiftCore-Mission-Control/
-├── frontend/             # Vite / React application (UI)
-├── gateway/              # NGINX API Gateway (Reverse Proxy)
-├── services/             # Backend Microservices
-│   ├── identity-api/     # .NET 8 API (Authentication & Authorization)
-│   ├── core-api/         # Express.js / Node API (Tasks & Projects)
-│   └── ai-api/           # FastAPI / Python (AI integration for summaries)
-├── docker-compose.yml    # Root orchestration for the entire stack
-└── setup.md              # Local Environment Setup Guide
-```
-
----
+| Service        | Path                    | Stack            | Owner            |
+|----------------|-------------------------|------------------|------------------|
+| Web            | `apps/web`              | React            | Web owner        |
+| Identity API   | `services/identity`     | ASP.NET Core     | Mohamed Tawfik   |
+| Core API       | `services/core`         | Express.js       | Abo El Ala       |
+| AI/Data API    | `services/ai`           | FastAPI          | Peter            |
+| Nginx Gateway  | `infra/nginx`           | Nginx            | Mohamed Sameh    |
+| PostgreSQL     | `infra/postgres`        | PostgreSQL 16    | Mohamed Sameh    |
 
 ## Quick Start
 
-For detailed instructions on running the environment, configuring environment variables, and local debugging, please refer to the **[Setup Guide](setup.md)**.
-
 ```bash
-# 1. Setup Environment
-cp .env.example .env
+# 1. Initialize local environment (no secrets required)
+./scripts/init-local-env.sh
 
-# 2. Run the full stack
-docker compose up --build -d
+# 2. Validate Compose contract only
+docker compose config
 ```
 
----
+Application Dockerfiles, migrations, and business logic are owned by the respective service owners and are out of scope for this bootstrap.
 
-## Important Links
+## Architecture Rules (enforced)
 
-### Team Handbook
-- [Contributing Guidelines](CONTRIBUTING.md) (Local Guide)
-- [Team Handbook Repository](https://github.com/Shift-Core/team-handbook)
-- [Start Here Guide](https://github.com/Shift-Core/team-handbook/blob/main/docs/00-start-here.md)
-- [Git Workflow](https://github.com/Shift-Core/team-handbook/blob/main/docs/git/git-workflow.md)
-- [Branch and Commit Rules](https://github.com/Shift-Core/team-handbook/blob/main/docs/git/branch-and-commit-rules.md)
-- [Pull Request Guide](https://github.com/Shift-Core/team-handbook/blob/main/docs/git/pull-request-guide.md)
+- Browser traffic enters **only** through Nginx.
+- Backend ports remain internal.
+- AI/Data receives `projectId` + `sprintId` and obtains authoritative data from Core over the internal network.
+- No cross-schema foreign keys.
+- AI preview is non-persisted (no `ai` schema in this release).
+- Identity signs RS256 JWTs; Core and AI only verify.
 
-### Project Wiki
-- [ShiftCore Mission Control Wiki](https://github.com/Shift-Core/ShiftCore-Mission-Control/wiki)
-- [Project Overview](https://github.com/Shift-Core/ShiftCore-Mission-Control/wiki/01-Project-Overview)
-- [MVP Scope](https://github.com/Shift-Core/ShiftCore-Mission-Control/wiki/02-MVP-Scope)
-- [Architecture & Design](https://github.com/Shift-Core/ShiftCore-Mission-Control/wiki/08-System-Architecture)
+## Seeded Users (local-dev)
 
----
+| Email                     | Password       | Role     |
+|---------------------------|----------------|----------|
+| `super@shiftcore.local`   | `Password123!` | Super    |
+| `core@shiftcore.local`    | `Password123!` | Core     |
+| `identity@shiftcore.local`| `Password123!` | Identity |
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Ownership
+
+See `docs/topology-and-ownership.md`.

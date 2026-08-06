@@ -1,167 +1,189 @@
-name: shiftcore-mission-control
+# =============================================================================
+# ShiftCore Mission Control - Compose Contract (R24-04)
+# Configuration validation only. Application Dockerfiles and business logic
+# are owned by the respective service owners and are out of scope here.
+# =============================================================================
+
+name: shiftcore
+
+networks:
+  shiftcore-net:
+    driver: bridge
+    name: shiftcore-net
+
+volumes:
+  postgres_data:
+    name: shiftcore_postgres_data
 
 services:
-  gateway:
-    build:
-      context: ./gateway
-      dockerfile: Dockerfile
-    container_name: smc_gateway
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Infrastructure
+  # Owner: Mohamed Sameh
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: shiftcore-postgres
     restart: unless-stopped
-    ports:
-      - "${GATEWAY_PORT:-80}:80"
-    depends_on:
-      - frontend
-      - identity-api
-      - core-api
-      - ai-api
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shiftcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shiftcore_local_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-shiftcore}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/bootstrap:/docker-entrypoint-initdb.d:ro
     networks:
-      - smc_network
+      - shiftcore-net
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health/frontend"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shiftcore} -d ${POSTGRES_DB:-shiftcore}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Identity API (ASP.NET Core)
+  # Owner: Mohamed Tawfik
+  # Path: services/identity
+  # ---------------------------------------------------------------------------
+  identity:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+    container_name: shiftcore-identity
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:5001
+      ConnectionStrings__Identity: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
+      Jwt__Issuer: ${JWT_ISSUER:-shiftcore-identity}
+      Jwt__Audience: ${JWT_AUDIENCE:-shiftcore-api}
+      Jwt__PrivateKeyPath: ${JWT_PRIVATE_KEY_PATH:-/run/secrets/jwt_private.pem}
+      SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
+    networks:
+      - shiftcore-net
+    expose:
+      - "5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 10s
       timeout: 5s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      retries: 5
+      start_period: 20s
 
-  frontend:
+  # ---------------------------------------------------------------------------
+  # Core API (Express.js)
+  # Owner: Abo El Ala
+  # Path: services/core
+  # ---------------------------------------------------------------------------
+  core:
     build:
-      context: ./frontend
+      context: ./services/core
       dockerfile: Dockerfile
-    container_name: smc_frontend
+    container_name: shiftcore-core
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      DATABASE_URL: "postgresql://${CORE_DB_USER:-core_app}:${CORE_DB_PASSWORD:-core_local_dev_only}@postgres:5432/${POSTGRES_DB:-shiftcore}?schema=core"
+      JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public.pem}
     networks:
-      - smc_network
+      - shiftcore-net
+    expose:
+      - "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # AI/Data API (FastAPI) - non-persisted deterministic preview
+  # Owner: Peter
+  # Path: services/ai
+  # ---------------------------------------------------------------------------
+  ai:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    container_name: shiftcore-ai
+    restart: unless-stopped
+    environment:
+      PYTHON_ENV: ${PYTHON_ENV:-development}
+      PORT: 8000
+      CORE_INTERNAL_URL: ${CORE_INTERNAL_URL:-http://core:4000}
+      JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public.pem}
+      AI_PROVIDER: ${AI_PROVIDER:-deterministic}
+    networks:
+      - shiftcore-net
+    expose:
+      - "8000"
+    depends_on:
+      - core
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # React Web Frontend
+  # Path: apps/web
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: shiftcore-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+    networks:
+      - shiftcore-net
+    expose:
+      - "3000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 10s
       timeout: 5s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      retries: 5
+      start_period: 15s
 
-  identity-api:
-    build:
-      context: ./services/identity-api
-      dockerfile: Dockerfile
-    container_name: smc_identity_api
+  # ---------------------------------------------------------------------------
+  # Nginx Gateway - only public browser entry point
+  # Path: infra/nginx
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: shiftcore-nginx
     restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
-      - ConnectionStrings__DefaultConnection=${IDENTITY_DB_CONNECTION}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/identity"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - smc_network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  core-api:
-    build:
-      context: ./services/core-api
-      dockerfile: Dockerfile
-    container_name: smc_core_api
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - PORT=${CORE_PORT:-3000}
-      - DB_CONNECTION=${CORE_DB_CONNECTION}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health/core"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - smc_network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  ai-api:
-    build:
-      context: ./services/ai-api
-      dockerfile: Dockerfile
-    container_name: smc_ai_api
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - PORT=${AI_PORT:-8000}
-      - AI_MODE=${AI_MODE:-deterministic}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ai"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - smc_network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: smc_postgres
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - shiftcore-net
+    depends_on:
+      - web
+      - identity
+      - core
+      - ai
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health/frontend"]
+      interval: 10s
       timeout: 5s
       retries: 5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - smc_network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-networks:
-  smc_network:
-    name: smc_network
-    driver: bridge
-
-volumes:
-  postgres_data:
+      start_period: 10s
