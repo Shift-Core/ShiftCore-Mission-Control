@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - develop
+      - 'feat/*'
+      - 'fix/*'
   pull_request:
     branches:
       - main
