@@ -1,0 +1,9 @@
+openapi: 3.0.3
+info:
+  title: ShiftCore Identity API
+  version: 0.1.0
+  description: R24-04 contract stub. Full endpoints owned by Mohamed Tawfik.
+paths: {}
+components:
+  schemas: {}
+# Real paths (login, /me, logout, …) will be documented before implementation.

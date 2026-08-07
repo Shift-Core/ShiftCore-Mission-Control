@@ -1,0 +1,9 @@
+openapi: 3.0.3
+info:
+  title: ShiftCore AI/Data API
+  version: 0.1.0
+  description: R24-04 contract stub. Full endpoints owned by Peter. Non-persisted deterministic preview only.
+paths: {}
+components:
+  schemas: {}
+# Real paths (weekly-summary preview, …) will be documented before implementation.

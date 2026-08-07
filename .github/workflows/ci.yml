@@ -1,0 +1,36 @@
+name: ShiftCore CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feat/*'
+      - 'fix/*'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore services/identity/IdentityApi.csproj
+
+      - name: Build Identity API
+        run: dotnet build services/identity/IdentityApi.csproj --no-restore -c Release
+
+      - name: Verify Docker Builds
+        run: docker compose build web identity core ai
