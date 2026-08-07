@@ -121,7 +121,7 @@ jobs:
           fi
 
       - name: Core contract paths
-        if: steps.changes.outputs.run == 'true'
+        if:      steps.changes.outputs.run == 'true'
         run: |
           test -f services/core/Dockerfile
           test -d services/core
@@ -129,5 +129,6 @@ jobs:
           # Real build/test owned by Abo El Ala
 
       - name: Skip
-        if: steps.changes.outputs.run != 'tru
+       if:   steps.changes.outputs.run != 'true'
+       run: echo "No changes —  skipped" steps.changes.outputs.run != 'tru
 ... 
