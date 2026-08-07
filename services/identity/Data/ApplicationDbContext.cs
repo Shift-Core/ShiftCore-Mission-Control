@@ -37,8 +37,8 @@ namespace IdentityApi.Data
                     Role = "Super",
                     TeamId = Guid.Parse("00000000-0000-4000-8000-000000000001"),
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new User
                 {
@@ -49,8 +49,8 @@ namespace IdentityApi.Data
                     Role = "Core",
                     TeamId = Guid.Parse("00000000-0000-4000-8000-000000000001"),
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new User
                 {
@@ -61,8 +61,8 @@ namespace IdentityApi.Data
                     Role = "Identity",
                     TeamId = Guid.Parse("00000000-0000-4000-8000-000000000001"),
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
         }
