@@ -56,7 +56,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:5001
-      ConnectionStrings__Identity: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
       Jwt__Issuer: ${JWT_ISSUER:-shiftcore-identity}
       Jwt__Audience: ${JWT_AUDIENCE:-shiftcore-api}
       Jwt__PrivateKeyPath: ${JWT_PRIVATE_KEY_PATH:-/run/secrets/jwt_private.pem}
@@ -69,7 +69,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5001/health/identity"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -101,7 +101,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -133,7 +133,7 @@ services:
     depends_on:
       - core
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -156,7 +156,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -182,7 +182,7 @@ services:
       - core
       - ai
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health/frontend"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health/frontend"]
       interval: 10s
       timeout: 5s
       retries: 5
