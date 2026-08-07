@@ -7,7 +7,7 @@ namespace IdentityApi.Endpoints
             app.MapGet("/health/identity", () => Results.Ok(new
             {
                 status = "ok",
-                service = "identity-api",
+                service = "identity",
                 version = "0.1.0",
                 timestamp = DateTime.UtcNow.ToString("O")
             }))

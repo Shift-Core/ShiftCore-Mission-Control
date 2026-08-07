@@ -1,4 +1,4 @@
-name: Identity API CI
+name: ShiftCore CI
 
 on:
   push:
@@ -25,10 +25,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore Dependencies
-        run: dotnet restore services/identity-api/IdentityApi.csproj
+        run: dotnet restore services/identity/IdentityApi.csproj
 
-      - name: Build Application
-        run: dotnet build services/identity-api/IdentityApi.csproj --no-restore -c Release
+      - name: Build Identity API
+        run: dotnet build services/identity/IdentityApi.csproj --no-restore -c Release
 
-      - name: Verify Docker Build
-        run: docker compose build identity-api
+      - name: Verify Docker Builds
+        run: docker compose build web identity core ai

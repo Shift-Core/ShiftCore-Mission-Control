@@ -44,7 +44,7 @@ Verifies the service is alive and running.
   ```json
   {
     "status": "ok",
-    "service": "identity-api",
+    "service": "identity",
     "version": "0.1.0",
     "timestamp": "2026-08-06T10:00:00.000Z"
   }

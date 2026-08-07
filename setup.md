@@ -66,7 +66,7 @@ If you prefer to debug the Identity API natively on your machine (e.g., using Vi
      }
    }
    ```
-4. **How it works:** When you run `dotnet run` (or hit F5 in your IDE) inside the `identity-api` folder, ASP.NET automatically loads settings from `appsettings.Development.json`. It will use this `DefaultConnection` to connect to the Postgres database exposed on your `localhost`.
+4. **How it works:** When you run `dotnet run` (or hit F5 in your IDE) inside the `identity` folder, ASP.NET automatically loads settings from `appsettings.Development.json`. It will use this `DefaultConnection` to connect to the Postgres database exposed on your `localhost`.
 5. If you change your database password in the `.env` file, **you must also update it here** in `appsettings.Development.json` for local debugging to work!
 
 **Run the API locally:**

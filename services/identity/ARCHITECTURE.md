@@ -77,7 +77,7 @@ sequenceDiagram
 
 ## 3. Database Schema
 
-Currently, the `identity-api` manages the `shiftcore_identity` database on PostgreSQL.
+Currently, the `identity` manages the `shiftcore_identity` database on PostgreSQL.
 
 ```mermaid
 erDiagram
