@@ -26,11 +26,23 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Initialize Environment
+        run: ./scripts/init-local-env.sh
+
+      - name: Generate JWT Keys
+        run: ./scripts/generate-jwt-keys.sh
+
       - name: Restore Dependencies
         run: dotnet restore services/identity/IdentityApi.csproj
 
       - name: Build Identity API
         run: dotnet build services/identity/IdentityApi.csproj --no-restore -c Release
 
+      - name: Verify EF Core Migrations
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef migrations has-pending-model-changes --project services/identity/IdentityApi.csproj
+
       - name: Verify Docker Builds
         run: docker compose build web identity core ai
+
