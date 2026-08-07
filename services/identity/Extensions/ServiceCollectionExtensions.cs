@@ -1,8 +1,10 @@
 using IdentityApi.Data;
 using IdentityApi.DTOs;
 using IdentityApi.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 
 namespace IdentityApi.Extensions
 {
@@ -14,32 +16,70 @@ namespace IdentityApi.Extensions
                 ?? "Host=localhost;Database=shiftcore_identity;Username=shiftcore;Password=shiftcore_pass";
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(connectionString));
+                options.UseNpgsql(connectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "identity")));
         }
 
         public static void AddIdentityServices(this IServiceCollection services)
         {
             services.AddScoped<IAuthService, AuthService>();
 
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Cookie.Name = "sc_token";
-                    options.Cookie.HttpOnly = true;
-                    options.Cookie.SameSite = SameSiteMode.Strict;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            var configuration = services.BuildServiceProvider().GetRequiredService<IConfiguration>();
+            var privateKeyPath = configuration["Jwt:PrivateKeyPath"];
+            
+            RsaSecurityKey? rsaKey = null;
+            if (!string.IsNullOrEmpty(privateKeyPath) && File.Exists(privateKeyPath))
+            {
+                var rsa = RSA.Create();
+                rsa.ImportFromPem(File.ReadAllText(privateKeyPath));
+                rsaKey = new RsaSecurityKey(rsa);
+            }
 
-                    options.Events.OnRedirectToLogin = context =>
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false; // Set to true in production
+                    options.SaveToken = true;
+
+                    if (rsaKey != null)
                     {
-                        context.Response.StatusCode = 401;
-                        context.Response.ContentType = "application/json";
-                        var error = new ApiErrorResponse
+                        options.TokenValidationParameters = new TokenValidationParameters
                         {
-                            Message = "Validation failed",
-                            ErrorCode = "AUTH_REQUIRED",
-                            TraceId = context.HttpContext.TraceIdentifier
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = rsaKey,
+                            ValidateIssuer = true,
+                            ValidIssuer = configuration["Jwt:Issuer"] ?? "shiftcore-identity",
+                            ValidateAudience = true,
+                            ValidAudience = configuration["Jwt:Audience"] ?? "shiftcore-api",
+                            ValidateLifetime = true,
+                            ClockSkew = TimeSpan.Zero
                         };
-                        return context.Response.WriteAsJsonAsync(error);
+                    }
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var cookieName = configuration["SC_TOKEN_COOKIE_NAME"] ?? "sc_token";
+                            if (context.Request.Cookies.ContainsKey(cookieName))
+                            {
+                                context.Token = context.Request.Cookies[cookieName];
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnChallenge = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.StatusCode = 401;
+                            context.Response.ContentType = "application/json";
+                            var error = new ApiErrorResponse
+                            {
+                                Message = "Validation failed",
+                                ErrorCode = "AUTH_REQUIRED",
+                                TraceId = context.HttpContext.TraceIdentifier
+                            };
+                            return context.Response.WriteAsJsonAsync(error);
+                        }
                     };
                 });
 

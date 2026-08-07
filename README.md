@@ -40,14 +40,14 @@ ShiftCore-Mission-Control/
 │   └── postgres/         # Database bootstrap & init scripts
 ├── contracts/            # OpenAPI specifications and schemas
 ├── docker-compose.yml    # Root orchestration for the entire stack
-└── setup.md              # Local Environment Setup Guide
+└── SETUP.md              # Local Environment Setup Guide
 ```
 
 ---
 
 ## Quick Start
 
-For detailed instructions on running the environment, configuring environment variables, and local debugging, please refer to the **[Setup Guide](setup.md)**.
+For detailed instructions on running the environment, configuring environment variables, and local debugging, please refer to the **[Setup Guide](SETUP.md)**.
 
 ```bash
 # 1. Setup Environment

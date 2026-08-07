@@ -2,8 +2,290 @@ openapi: 3.0.3
 info:
   title: ShiftCore Identity API
   version: 0.1.0
-  description: R24-04 contract stub. Full endpoints owned by Mohamed Tawfik.
-paths: {}
+  description: |
+    RS256-signed cookie-based authentication for the ShiftCore Mission Control platform.
+    Owner: Mohamed Tawfik | R24-02 release slice.
+
+    **Security model:** On successful login the API sets an `HttpOnly`, `SameSite=Strict` cookie
+    named `sc_token` containing a signed RS256 JWT. All protected endpoints require this cookie.
+    Other services (Core, AI) validate the JWT locally using the public key — no calls back to
+    the Identity API are needed after login.
+
+servers:
+  - url: http://localhost:5001
+    description: Local Docker (direct, for dev/testing)
+  - url: http://localhost:80/api/identity/v1
+    description: Local via Nginx Gateway
+
+tags:
+  - name: Auth
+    description: Authentication and session management
+  - name: Health
+    description: Service liveness
+
+paths:
+  /health/identity:
+    get:
+      tags: [Health]
+      summary: Service health check
+      operationId: healthIdentity
+      security: []
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: identity
+                version: "0.1.0"
+                timestamp: "2026-08-07T12:00:00.000Z"
+
+  /api/identity/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and receive session cookie
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: super@shiftcore.local
+              password: Password123!
+      responses:
+        "200":
+          description: Login successful — `sc_token` HttpOnly cookie is set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: "`sc_token=<RS256-JWT>; HttpOnly; SameSite=Strict; Path=/`"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccessResponse"
+              example:
+                success: true
+                message: Login successful
+                data:
+                  expiresAt: "2026-08-07T13:00:00.000Z"
+                  user:
+                    id: "11111111-1111-4111-8111-111111111111"
+                    name: Super Admin
+                    email: super@shiftcore.local
+                    role: Super
+                    teamId: "00000000-0000-4000-8000-000000000001"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Sign-in failed. Check your details or contact the workspace administrator.
+                errorCode: AUTH_INVALID
+                traceId: "0HN123ABC"
+
+  /api/identity/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user profile
+      operationId: getMe
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current user profile extracted from JWT claims
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeSuccessResponse"
+              example:
+                success: true
+                message: Operation completed
+                data:
+                  user:
+                    id: "11111111-1111-4111-8111-111111111111"
+                    name: Super Admin
+                    email: super@shiftcore.local
+                    role: Super
+                    teamId: "00000000-0000-4000-8000-000000000001"
+        "401":
+          description: Missing or invalid session cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Validation failed
+                errorCode: AUTH_REQUIRED
+                traceId: "0HN123ABD"
+
+  /api/identity/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate session and clear cookie
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Session cleared — `sc_token` cookie is deleted
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: "`sc_token=; Expires=Thu 01 Jan 1970 00:00:00 GMT; HttpOnly`"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutSuccessResponse"
+              example:
+                success: true
+                message: Operation completed
+                data: {}
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
-  schemas: {}
-# Real paths (login, /me, logout, …) will be documented before implementation.
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sc_token
+      description: RS256-signed JWT cookie set by POST /auth/login
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: super@shiftcore.local
+        password:
+          type: string
+          format: password
+          example: Password123!
+
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "11111111-1111-4111-8111-111111111111"
+        name:
+          type: string
+          example: Super Admin
+        email:
+          type: string
+          format: email
+          example: super@shiftcore.local
+        role:
+          type: string
+          enum: [Super, Core, Identity]
+          example: Super
+        teamId:
+          type: string
+          format: uuid
+          nullable: true
+          example: "00000000-0000-4000-8000-000000000001"
+
+    LoginResponseData:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 expiry of the JWT (1 hour from login)
+        user:
+          $ref: "#/components/schemas/UserDto"
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          $ref: "#/components/schemas/LoginResponseData"
+
+    MeSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation completed
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/UserDto"
+
+    LogoutSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation completed
+        data:
+          type: object
+          example: {}
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: identity
+        version:
+          type: string
+          example: "0.1.0"
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        data:
+          nullable: true
+        errorCode:
+          type: string
+          enum: [AUTH_INVALID, AUTH_REQUIRED]
+        errors:
+          type: array
+          items: {}
+        traceId:
+          type: string

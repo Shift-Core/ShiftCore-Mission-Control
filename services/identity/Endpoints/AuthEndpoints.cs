@@ -1,7 +1,7 @@
 using IdentityApi.DTOs;
 using IdentityApi.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
 namespace IdentityApi.Endpoints
@@ -14,9 +14,9 @@ namespace IdentityApi.Endpoints
 
             api.MapPost("/login", async (LoginRequest req, HttpContext context, IAuthService authService) =>
             {
-                var (isSuccess, principal, userDto) = await authService.ValidateCredentialsAsync(req);
+                var (isSuccess, jwtToken, userDto) = await authService.ValidateCredentialsAsync(req);
 
-                if (!isSuccess || principal == null || userDto == null)
+                if (!isSuccess || jwtToken == null || userDto == null)
                 {
                     return Results.Json(new ApiErrorResponse
                     {
@@ -27,10 +27,14 @@ namespace IdentityApi.Endpoints
                     }, statusCode: 401);
                 }
 
-                await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties
+                var cookieName = context.RequestServices.GetRequiredService<IConfiguration>()["SC_TOKEN_COOKIE_NAME"] ?? "sc_token";
+
+                context.Response.Cookies.Append(cookieName, jwtToken, new CookieOptions
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+                    HttpOnly = true,
+                    Secure = context.Request.IsHttps || context.Request.Headers["X-Forwarded-Proto"] == "https",
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)
                 });
 
                 return Results.Ok(new ApiResponse<LoginResponseData>
@@ -40,9 +44,11 @@ namespace IdentityApi.Endpoints
                 });
             });
 
-            api.MapPost("/logout", async (HttpContext context) =>
+            api.MapPost("/logout", (HttpContext context) =>
             {
-                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                var cookieName = context.RequestServices.GetRequiredService<IConfiguration>()["SC_TOKEN_COOKIE_NAME"] ?? "sc_token";
+                context.Response.Cookies.Delete(cookieName);
+                
                 return Results.Ok(new ApiResponse<object>
                 {
                     Message = "Operation completed",

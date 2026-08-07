@@ -63,8 +63,12 @@ services:
       SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
     networks:
       - shiftcore-net
+    volumes:
+      - ./.secrets:/run/secrets:ro
     expose:
       - "5001"
+    ports:
+      - "${IDENTITY_PORT:-5001}:5001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,6 +99,8 @@ services:
       JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public.pem}
     networks:
       - shiftcore-net
+    volumes:
+      - ./.secrets:/run/secrets:ro
     expose:
       - "4000"
     depends_on:
@@ -128,6 +134,8 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-deterministic}
     networks:
       - shiftcore-net
+    volumes:
+      - ./.secrets:/run/secrets:ro
     expose:
       - "8000"
     depends_on:
