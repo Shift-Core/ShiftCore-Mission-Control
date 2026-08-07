@@ -48,3 +48,7 @@ yarn-error.log*
 # Docker
 docker-compose.override.yml
 .secrets/
+
+# Keys / Secrets
+infra/keys/
+*.pem
