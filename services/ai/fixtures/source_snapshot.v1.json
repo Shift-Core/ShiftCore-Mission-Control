@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "projectId": "prj_demo",
+  "sprintId": "spr_demo",
+  "snapshotSource": "core-mission-control-v1",
+  "snapshot": {
+    "plannedTasks": 3,
+    "toDoTasks": 1,
+    "inProgressTasks": 1,
+    "doneTasks": 1,
+    "completionRate": 33.3,
+    "activeBlockers": 1
+  }
+}
