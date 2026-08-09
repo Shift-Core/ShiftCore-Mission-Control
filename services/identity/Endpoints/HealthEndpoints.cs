@@ -4,7 +4,7 @@ namespace IdentityApi.Endpoints
     {
         public static void MapHealthEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/health/identity", () => Results.Ok(new
+            app.MapGet("/health", () => Results.Ok(new
             {
                 status = "ok",
                 service = "identity",
