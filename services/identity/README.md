@@ -29,16 +29,21 @@ This API strictly adheres to a standard JSON envelope response pattern:
 - **Success (`200 OK`)**: `{ "success": true, "message": "...", "data": { ... } }`
 - **Error (`400/401`)**: `{ "success": false, "message": "...", "errorCode": "...", "traceId": "..." }`
 
-You can test all endpoints manually using `curl` (assuming the service is running locally on port `5001` via Docker).
+Health checks use a consistent two-layer contract: every backend service exposes `GET /health` internally, while Nginx exposes the service-specific public route. Direct `localhost:5001` examples elsewhere in this README assume the Identity service is intentionally exposed or run directly for development; release/demo traffic should use the gateway.
 
 ### 1. Health Check
 Verifies the service is alive and running.
 
-- **URL:** `GET /health/identity`
+- **Internal service endpoint:** `GET /health`
+- **Public gateway endpoint:** `GET /health/identity`
 - **Auth Required:** No
-- **Test Command:**
+- **Container verification:**
   ```bash
-  curl -s http://localhost:5001/health/identity
+  docker compose exec identity curl -fsS http://127.0.0.1:5001/health
+  ```
+- **Gateway verification:**
+  ```bash
+  curl -fsS http://localhost/health/identity
   ```
 - **Success Response:**
   ```json
