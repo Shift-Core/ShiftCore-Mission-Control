@@ -16,7 +16,7 @@ app = FastAPI(
 @app.get("/health", tags=["health"])
 def health() -> dict[str, str]:
     return {
-	"status": "ok",
-	"service": "ai",
-	"mode": os.getenv("AI_PROVIDER", "deterministic"),
+    "status": "ok",
+    "service": "ai",
+    "mode": os.getenv("AI_PROVIDER", "deterministic"),
     }

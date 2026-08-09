@@ -1,9 +1,210 @@
 openapi: 3.0.3
+
 info:
   title: ShiftCore AI/Data API
   version: 0.1.0
-  description: R24-04 contract stub. Full endpoints owned by Peter. Non-persisted deterministic preview only.
-paths: {}
+  description: >
+    R24-05 AI/Data foundation contract. This release foundation defines
+    the deterministic weekly-summary request and response schemas and
+    exposes the service health check. The protected weekly-summary preview
+    HTTP endpoint is implemented separately in R24-12.
+
+servers:
+  - url: http://ai:8000
+    description: Internal Docker Compose service
+
+paths:
+  /health:
+    get:
+      summary: Check AI/Data service health
+      operationId: getAiHealth
+      tags:
+        - health
+      responses:
+        "200":
+          description: AI/Data service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: ai
+                mode: deterministic
+
 components:
-  schemas: {}
-# Real paths (weekly-summary preview, …) will be documented before implementation.
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+        - mode
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        service:
+          type: string
+          enum:
+            - ai
+        mode:
+          type: string
+          example: deterministic
+
+    KpiSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - plannedTasks
+        - toDoTasks
+        - inProgressTasks
+        - doneTasks
+        - completionRate
+        - activeBlockers
+      properties:
+        plannedTasks:
+          type: integer
+          minimum: 0
+        toDoTasks:
+          type: integer
+          minimum: 0
+        inProgressTasks:
+          type: integer
+          minimum: 0
+        doneTasks:
+          type: integer
+          minimum: 0
+        completionRate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: >
+            Done divided by Planned multiplied by 100, rounded to one
+            decimal place. Returns 0 when Planned is 0.
+        activeBlockers:
+          type: integer
+          minimum: 0
+      description: >
+        Approved ADR-011 release KPI snapshot. plannedTasks must equal
+        toDoTasks + inProgressTasks + doneTasks.
+
+    SummaryPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - projectId
+        - sprintId
+        - snapshotSource
+        - snapshot
+      properties:
+        schemaVersion:
+          type: string
+          enum:
+            - "1.0"
+        projectId:
+          type: string
+          minLength: 1
+        sprintId:
+          type: string
+          minLength: 1
+        snapshotSource:
+          type: string
+          enum:
+            - core-mission-control-v1
+          description: >
+            Descriptive provenance label for the Core mission-control
+            snapshot. It is not cryptographic provenance.
+        snapshot:
+          $ref: "#/components/schemas/KpiSnapshot"
+
+    SummarySection:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - title
+        - content
+      properties:
+        key:
+          type: string
+          enum:
+            - progress
+            - blockers
+            - attention
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+
+    SummaryPreviewData:
+      type: object
+      additionalProperties: false
+      required:
+        - source
+        - schemaVersion
+        - projectId
+        - sprintId
+        - generatedAt
+        - sourceSnapshot
+        - sections
+        - warnings
+      properties:
+        source:
+          type: string
+          enum:
+            - deterministic
+        schemaVersion:
+          type: string
+          enum:
+            - "1.0"
+        projectId:
+          type: string
+          minLength: 1
+        sprintId:
+          type: string
+          minLength: 1
+        generatedAt:
+          type: string
+          format: date-time
+        sourceSnapshot:
+          $ref: "#/components/schemas/KpiSnapshot"
+        sections:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: >
+            Exactly three sections in this order: progress, blockers,
+            attention.
+          items:
+            $ref: "#/components/schemas/SummarySection"
+        warnings:
+          type: array
+          items:
+            type: string
+          example:
+            - provider_fallback_used
+
+    SummaryPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        message:
+          type: string
+          enum:
+            - Weekly summary preview generated
+        data:
+          $ref: "#/components/schemas/SummaryPreviewData"
