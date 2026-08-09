@@ -1,9 +1,249 @@
 # AI/Data API
 
-**Owner:** Peter  
-**Stack:** FastAPI  
-**Persistence:** None in this release (deterministic non-persisted weekly-summary preview)  
-**Release responsibilities:** Validated deterministic weekly-summary preview and fallback  
+The ShiftCore AI/Data service provides the release foundation for the
+weekly-summary capability.
 
-Build context and Dockerfile are owned by Peter.  
-No AI database schema required for the August 24 slice.
+For R24-05, the service freezes and validates the deterministic summary
+contract without making the release dependent on an external AI provider.
+
+## Ownership
+
+- Jira: SMC-97 / R24-05
+- Owner: Peter
+- Reviewer: Mohamed Sameh
+- Stack: FastAPI, Pydantic
+- Container service: `ai`
+- Internal port: `8000`
+- Persistence: none in this release slice
+
+## Current R24-05 Scope
+
+R24-05 provides:
+
+- a container-ready FastAPI service;
+- `GET /health`;
+- the approved KPI snapshot schema;
+- deterministic weekly-summary request and response models;
+- approved input and output fixtures;
+- deterministic summary generation;
+- fallback-warning support;
+- schema, formula, repeatability, fixture, and health tests;
+- the AI/Data OpenAPI contract.
+
+The protected weekly-summary preview HTTP endpoint is intentionally not
+implemented by R24-05.
+
+That endpoint is owned by R24-12:
+
+```text
+POST /api/ai/v1/summaries/weekly/preview
+````
+
+## Deterministic Release Mode
+
+The release default is:
+
+```text
+AI_PROVIDER=deterministic
+```
+
+Deterministic mode does not require an external provider or provider API key.
+
+Given the same material KPI input, the generated summary keeps the same:
+
+* section keys;
+* section order;
+* material section content;
+* source snapshot.
+
+`generatedAt` may differ between executions.
+
+The deterministic response uses:
+
+```text
+source=deterministic
+```
+
+If a future optional provider adapter fails, the release flow must fall back
+to deterministic output and may include a non-secret warning such as:
+
+```text
+provider_fallback_used
+```
+
+External provider integration, provider selection, prompt tuning, and model
+selection are outside R24-05.
+
+## KPI Snapshot
+
+The release snapshot contains:
+
+* `plannedTasks`
+* `toDoTasks`
+* `inProgressTasks`
+* `doneTasks`
+* `completionRate`
+* `activeBlockers`
+
+Release validation requires:
+
+```text
+plannedTasks = toDoTasks + inProgressTasks + doneTasks
+```
+
+Completion is:
+
+```text
+completionRate = doneTasks / plannedTasks * 100
+```
+
+rounded to one decimal place.
+
+When `plannedTasks` is `0`, `completionRate` is `0`.
+
+## Summary Sections
+
+The deterministic summary contains exactly three sections in this order:
+
+1. `progress`
+2. `blockers`
+3. `attention`
+
+The response also includes:
+
+* `schemaVersion`
+* project and sprint identity;
+* `generatedAt`;
+* the source KPI snapshot;
+* `source`;
+* `warnings`.
+
+## Fixtures
+
+Approved contract fixtures are stored in:
+
+```text
+fixtures/source_snapshot.v1.json
+fixtures/weekly_summary.v1.json
+```
+
+`source_snapshot.v1.json` is the approved deterministic input fixture.
+
+`weekly_summary.v1.json` is the expected response for that input when the
+fixed fixture generation time is used.
+
+## API Contract
+
+The AI/Data OpenAPI contract is stored at:
+
+```text
+../../contracts/ai.openapi.yaml
+```
+
+R24-05 documents the current `/health` endpoint and freezes the weekly-summary
+request and response schemas.
+
+The preview HTTP path itself is added by R24-12 when that endpoint is
+implemented.
+
+## Local Development
+
+Create or activate a Python virtual environment, then install dependencies:
+
+```bash
+python -m pip install -r services/ai/requirements.txt
+```
+
+From `services/ai`, start the service with:
+
+```bash
+AI_PROVIDER=deterministic \
+python -m uvicorn app.main:app \
+  --host 0.0.0.0 \
+  --port 8000
+```
+
+Check health:
+
+```bash
+curl -fsS http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "service": "ai",
+  "mode": "deterministic"
+}
+```
+
+## Tests
+
+From `services/ai`, run:
+
+```bash
+python -m pytest -v
+```
+
+The R24-05 suite covers:
+
+* request fixture schema validation;
+* response fixture schema validation;
+* invalid KPI status totals;
+* invalid completion-rate calculations;
+* required summary sections;
+* deterministic repeatability;
+* exact approved fixture generation;
+* fallback warning behavior;
+* approved seed KPI values;
+* zero-planned-task behavior;
+* health without a provider key.
+
+## Docker Compose
+
+Build the AI/Data image:
+
+```bash
+docker compose build ai
+```
+
+Start only the AI/Data service:
+
+```bash
+docker compose up -d --no-deps ai
+```
+
+Check container status:
+
+```bash
+docker compose ps ai
+```
+
+Check health from inside the container:
+
+```bash
+docker compose exec -T ai \
+  curl -fsS http://127.0.0.1:8000/health
+```
+
+The Compose service key is `ai`.
+
+Port `8000` is an internal service port; release browser-facing traffic is
+expected to pass through the Nginx gateway rather than directly exposing the
+AI container port.
+
+## Release Boundaries
+
+R24-05 does not implement:
+
+* a required external AI provider call;
+* provider or model selection;
+* prompt optimization;
+* the protected weekly-summary preview HTTP endpoint;
+* database persistence;
+* background generation jobs;
+* summary review, edit, approval, or publishing;
+* AI recommendations or management decisions.
+
