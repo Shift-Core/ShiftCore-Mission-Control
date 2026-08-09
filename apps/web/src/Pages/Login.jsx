@@ -4,7 +4,7 @@ import Footer from '@/components/Footer'
 function Login() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8fc]">
-      <main className="flex flex-1 items-start justify-center px-4 py-16">
+      <main className="flex flex-1 items-center  justify-center px-4 py-16">
         <section
           aria-labelledby="login-title"
           className="w-full max-w-[528px] rounded-2xl border border-[#d9dce5] bg-white px-10 py-12 shadow-sm sm:px-12"
