@@ -1,16 +1,25 @@
-# React + Vite
+# ShiftCore Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend shell for the R24-06 release slice.
 
-Currently, two official plugins are available:
+## Routes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `/login` — public login route
+- `/mission-control` — protected mission-control route
 
-## React Compiler
+## API Client
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The frontend uses gateway-relative API paths.
 
-## Expanding the ESLint configuration
+- Base path: `/api`
+- Credentials: included
+- Authentication tokens are not stored in frontend storage
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+API requests are routed through the Nginx gateway.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm ci
