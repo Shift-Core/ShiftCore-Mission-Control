@@ -24,14 +24,14 @@ PostgreSQL: single database `shiftcore`
 
 ## Ownership Matrix
 
-| Runtime Part     | Path                        | Dockerfile Owner   | Migration / Seed Owner     | Health Endpoint              |
-|------------------|-----------------------------|--------------------|----------------------------|------------------------------|
-| PostgreSQL       | `infra/postgres`            | Mohamed Sameh      | Mohamed Sameh (bootstrap)  | `pg_isready`                 |
-| Identity API     | `services/identity`         | Mohamed Tawfik     | Mohamed Tawfik (EF Core)   | `/health/identity`           |
-| Core API         | `services/core`             | Abo El Ala         | Abo El Ala (Prisma)        | `/health/core`               |
-| AI/Data API      | `services/ai`               | Peter              | N/A (non-persisted)        | `/health/ai`                 |
-| React Web        | `apps/web`                  | Web owner (TBD)    | N/A                        | `/health/frontend`           |
-| Nginx Gateway    | `infra/nginx`               | Mohamed Sameh      | N/A                        | Nginx + `/health/*` proxy    |
+| Runtime Part     | Path                        | Dockerfile Owner   | Migration / Seed Owner     | Internal Health | Public Gateway Health |
+|------------------|-----------------------------|--------------------|----------------------------|-----------------|-----------------------|
+| PostgreSQL       | `infra/postgres`            | Mohamed Sameh      | Mohamed Sameh (bootstrap)  | `pg_isready`    | N/A                   |
+| Identity API     | `services/identity`         | Mohamed Tawfik     | Mohamed Tawfik (EF Core)   | `/health`       | `/health/identity`    |
+| Core API         | `services/core`             | Abo El Ala         | Abo El Ala (Prisma)        | `/health`       | `/health/core`        |
+| AI/Data API      | `services/ai`               | Peter              | N/A (non-persisted)        | `/health`       | `/health/ai`          |
+| React Web        | `apps/web`                  | Web owner (TBD)    | N/A                        | `/health`       | `/health/frontend`    |
+| Nginx Gateway    | `infra/nginx`               | Mohamed Sameh      | N/A                        | N/A             | Routes `/health/*`    |
 
 ## Internal Ports
 
