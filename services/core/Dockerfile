@@ -1,7 +1,7 @@
 # ShiftCore Core API - Placeholder Dockerfile (R24-04)
 # Owner: Abo El Ala
 # Stack: Express.js
-# Real build, Prisma migrate/seed, and entrypoint are owned by Abo El Ala.
+# Real build, Prisma migrate/seed, and entrypoint are owned by Mohmed Mostafa.
 
 FROM node:22-alpine
 WORKDIR /app
