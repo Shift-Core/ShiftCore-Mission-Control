@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/useAuth'
 
-const VALID_EMAIL = 'lead@shiftcore.com'
+const VALID_EMAIL = 'lead@shiftcore.local'
 const VALID_PASSWORD = 'password123'
 
 function LoginForm() {
