@@ -68,6 +68,19 @@ sequenceDiagram
     IdentityAPI-->>User: 200 OK (User Profile Data)
 ```
 
+## 6. Seeded Users (Local Dev Only)
+
+The release seed creates exactly one active Lead account:
+
+| Email | Role | Purpose |
+|---|---|---|
+| `lead@shiftcore.local` | `Lead` | Release authentication fixture |
+
+Password is set via the `SEED_LEAD_PASSWORD` environment variable at seed time.
+**No password is committed to Git.** See README.md §Seed for the seed command.
+
+team_id: `3b5f3ec5-cc27-4d68-8f4d-d80545d6b9c1` (matches Core release seed — DM-C06).
+
 ### Security Highlights:
 - **`HttpOnly`**: The `sc_token` cookie cannot be read by client-side JavaScript (prevents XSS attacks).
 - **`SameSite=Strict`**: Protects against Cross-Site Request Forgery (CSRF).
@@ -77,25 +90,40 @@ sequenceDiagram
 
 ## 3. Database Schema
 
-Currently, the `identity` manages the `shiftcore_identity` database on PostgreSQL.
+The `identity` schema lives in the shared `shiftcore` PostgreSQL database.
+EF Core migrations (owned by this service) manage all DDL.
 
-```mermaid
-erDiagram
-    Users {
-        int Id PK "Auto-generated Identity"
-        string Email "Unique, MaxLength(255)"
-        string Name "MaxLength(255)"
-        string PasswordHash "Required"
-        string TeamId "MaxLength(50), Nullable"
-        string Role "MaxLength(50)"
-    }
+### `identity.users`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | `UUID` | PK, `DEFAULT gen_random_uuid()` |
+| `team_id` | `UUID` | `NOT NULL` |
+| `full_name` | `VARCHAR(255)` | `NOT NULL` |
+| `email` | `VARCHAR(255)` | `NOT NULL`, case-insensitive unique index `uq_user_email_ci` (DM-C01) |
+| `password_hash` | `TEXT` | `NOT NULL` (BCrypt, cost 11) |
+| `role` | `VARCHAR(50)` | `NOT NULL` |
+| `is_active` | `BOOLEAN` | `NOT NULL DEFAULT TRUE` |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT timezone('utc', now())` |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT timezone('utc', now())` |
+
+### `identity.__EFMigrationsHistory`
+Managed by EF Core. Records which migrations have been applied.
+
+### Migration & Seed Strategy
+
+Migrations are **never** applied automatically on startup.
+Run explicitly after any schema change:
+
+```bash
+dotnet ef database update
 ```
 
-### Seeding Strategy (R24 Release)
-To ensure immediate run-ability for local development and CI/CD pipelines, the database is auto-generated using `db.Database.EnsureCreated()` on startup. 
-If the `Users` table is empty, a default `Lead` account is securely seeded into the system:
-- **Email**: `lead@shiftcore.local`
-- **Role**: `Lead`
-- **Team**: `team_alpha`
+Seed is an **idempotent explicit command** (not baked into migrations):
 
-*(This documentation will be updated as roles, permissions, and teams expand in future sprints.)*
+```bash
+export SEED_LEAD_PASSWORD=<your-password>
+dotnet run --project services/identity -- --seed
+```
+
+See [README.md](README.md) for the full local startup sequence.
