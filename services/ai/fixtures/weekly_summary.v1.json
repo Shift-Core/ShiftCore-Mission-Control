@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "message": "Weekly summary preview generated",
+  "data": {
+    "source": "deterministic",
+    "schemaVersion": "1.0",
+    "projectId": "prj_demo",
+    "sprintId": "spr_demo",
+    "generatedAt": "2026-08-16T12:00:00Z",
+    "sourceSnapshot": {
+      "plannedTasks": 3,
+      "toDoTasks": 1,
+      "inProgressTasks": 1,
+      "doneTasks": 1,
+      "completionRate": 33.3,
+      "activeBlockers": 1
+    },
+    "sections": [
+      {
+        "key": "progress",
+        "title": "Progress",
+        "content": "1 of 3 planned tasks is done."
+      },
+      {
+        "key": "blockers",
+        "title": "Blockers",
+        "content": "1 active blocker needs attention."
+      },
+      {
+        "key": "attention",
+        "title": "Attention",
+        "content": "1 task is in progress and 1 has not started."
+      }
+    ],
+    "warnings": []
+  }
+}
