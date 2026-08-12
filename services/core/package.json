@@ -11,6 +11,8 @@
     "start": "tsx src/server.ts",
     "container:dev": "yarn db:generate && yarn db:deploy && yarn dev",
     "typecheck": "tsc --noEmit",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "db:generate": "prisma generate",
     "db:migrate:create": "prisma migrate dev --create-only",
     "db:migrate": "prisma migrate dev",
@@ -33,6 +35,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.20.4",
+    "prettier": "^3.9.6",
     "prisma": "^7.9.1",
     "tsx": "^4.23.10",
     "typescript": "^7.0.2"

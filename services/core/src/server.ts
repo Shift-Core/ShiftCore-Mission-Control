@@ -2,8 +2,8 @@ import express from "express";
 import morgan from "morgan";
 import { SERVER } from "./config/constants";
 import {
-    globalErrorHandler,
-    notFoundHandler,
+  globalErrorHandler,
+  notFoundHandler,
 } from "./middlewares/error-handler";
 import routes from "./routes";
 
@@ -18,7 +18,7 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 app.listen(SERVER.port, SERVER.host, () => {
-    console.log(`Core API running on port ${SERVER.port}`);
+  console.log(`Core API running on port ${SERVER.port}`);
 });
 
 export default app;
