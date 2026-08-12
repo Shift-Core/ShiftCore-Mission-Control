@@ -14,6 +14,10 @@ export const SERVER = Object.freeze({
   serviceName: "core",
 });
 
+export const API = Object.freeze({
+  basePath: "/api/core/v1",
+});
+
 export const ENVIRONMENT = Object.freeze({
   nodeEnv: process.env.NODE_ENV ?? "development",
   isDevelopment: (process.env.NODE_ENV ?? "development") === "development",
