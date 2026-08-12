@@ -50,6 +50,8 @@ export const ERROR_CODES = Object.freeze({
 
 export const ERROR_MESSAGES = Object.freeze({
     invalidJson: "Invalid JSON payload",
+    validation: "Validation failed",
+    requestBodyRequired: "Request body must contain at least one field",
     routeNotFound: "Route not found",
     internal: "An unexpected error occurred",
 });
