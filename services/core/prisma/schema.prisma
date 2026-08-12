@@ -10,4 +10,122 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["core"]
+}
+
+// Project
+model Project {
+  id      String        @id @default(uuid())
+  team_id String
+  code    String
+  name    String
+  status  ProjectStatus @default(Planned)
+
+  tasks    Task[]
+  sprints  Sprint[]
+  blockers Blocker[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([team_id, code], map: "uq_project_team_code")
+  @@schema("core")
+}
+
+model Sprint {
+  id         String       @id @default(uuid())
+  project    Project      @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  project_id String
+  name       String
+  goal       String
+  start_date DateTime
+  end_date   DateTime
+  status     SprintStatus @default(Planned)
+
+  tasks Task[]
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  blockers   Blocker[]
+
+  @@schema("core")
+}
+
+// Task
+model Task {
+  id         String  @id @default(uuid())
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  project_id String
+
+  sprint    Sprint? @relation(fields: [sprint_id], references: [id], onDelete: Restrict)
+  sprint_id String?
+
+  code       String
+  title      String
+  status     TaskStatus
+  owner_name String?
+
+  blockers Blocker[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([project_id, code], map: "uq_task_project_code")
+  @@index([project_id, sprint_id, status], map: "ix_task_project_sprint_status")
+  @@schema("core")
+}
+
+model Blocker {
+  id         String  @id @default(uuid())
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  project_id String
+
+  task    Task?   @relation(fields: [task_id], references: [id], onDelete: Restrict)
+  task_id String?
+
+  sprint    Sprint? @relation(fields: [sprint_id], references: [id], onDelete: Restrict)
+  sprint_id String?
+
+  title      String
+  status     BlockerStatus @default(Active)
+  owner_name String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([project_id, status], map: "ix_blocker_project_status")
+  @@schema("core")
+}
+
+enum ProjectStatus {
+  Planned
+  Active
+  Paused
+  Closed
+
+  @@schema("core")
+}
+
+enum SprintStatus {
+  Planned
+  Active
+  Closed
+  Cancelled
+
+  @@schema("core")
+}
+
+enum TaskStatus {
+  ToDo
+  InProgress
+  Done
+
+  @@schema("core")
+}
+
+enum BlockerStatus {
+  Active
+  Resolved
+
+  @@schema("core")
 }
