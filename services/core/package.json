@@ -9,10 +9,15 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "container:dev": "yarn db:generate && yarn db:deploy && yarn dev",
+    "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
+    "db:migrate:create": "prisma migrate dev --create-only",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:status": "prisma migrate status"
+    "db:status": "prisma migrate status",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

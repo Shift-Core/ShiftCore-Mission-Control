@@ -19,4 +19,4 @@ COPY src ./src
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "yarn db:generate && yarn dev"]
+CMD ["yarn", "container:dev"]
