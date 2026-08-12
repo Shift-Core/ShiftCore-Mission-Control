@@ -19,11 +19,33 @@ export const ENVIRONMENT = Object.freeze({
     isDevelopment: (process.env.NODE_ENV ?? "development") === "development",
 });
 
+export const HTTP_STATUS = Object.freeze({
+    ok: 200,
+    created: 201,
+    accepted: 202,
+    badRequest: 400,
+    unauthorized: 401,
+    forbidden: 403,
+    notFound: 404,
+    conflict: 409,
+    unprocessableEntity: 422,
+    tooManyRequests: 429,
+    internalServerError: 500,
+    serviceUnavailable: 503,
+});
+
 export const ERROR_CODES = Object.freeze({
-    badRequest: "BAD_REQUEST",
+    authRequired: "AUTH_REQUIRED",
+    authInvalid: "AUTH_INVALID",
+    authExpired: "AUTH_EXPIRED",
+    forbidden: "FORBIDDEN",
     validation: "VALIDATION_ERROR",
     notFound: "NOT_FOUND",
-    internal: "INTERNAL_SERVER_ERROR",
+    conflict: "CONFLICT",
+    invalidTransition: "INVALID_TRANSITION",
+    rateLimited: "RATE_LIMITED",
+    aiProviderUnavailable: "AI_PROVIDER_UNAVAILABLE",
+    internal: "INTERNAL_ERROR",
 });
 
 export const ERROR_MESSAGES = Object.freeze({

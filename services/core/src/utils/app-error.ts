@@ -1,10 +1,14 @@
-import { ERROR_CODES, ERROR_MESSAGES } from "../config/constants";
+import {
+    ERROR_CODES,
+    ERROR_MESSAGES,
+    HTTP_STATUS,
+} from "../config/constants";
 import type { TFieldError } from "../types";
 
 export class AppError extends Error {
     constructor(
         message: string,
-        public readonly statusCode: number = 500,
+        public readonly statusCode: number = HTTP_STATUS.internalServerError,
         public readonly code: string = ERROR_CODES.internal,
         public readonly errors: TFieldError[] = [],
         public readonly isOperational = true,
@@ -16,24 +20,39 @@ export class AppError extends Error {
     }
 
     static badRequest(message: string, errors: TFieldError[] = []): AppError {
-        return new AppError(message, 400, ERROR_CODES.badRequest, errors);
+        return new AppError(
+            message,
+            HTTP_STATUS.badRequest,
+            ERROR_CODES.validation,
+            errors,
+        );
     }
 
     static validation(message: string, errors: TFieldError[]): AppError {
-        return new AppError(message, 422, ERROR_CODES.validation, errors);
+        return new AppError(
+            message,
+            HTTP_STATUS.unprocessableEntity,
+            ERROR_CODES.validation,
+            errors,
+        );
     }
 
     static notFound(
         message = ERROR_MESSAGES.routeNotFound,
         errors: TFieldError[] = [],
     ): AppError {
-        return new AppError(message, 404, ERROR_CODES.notFound, errors);
+        return new AppError(
+            message,
+            HTTP_STATUS.notFound,
+            ERROR_CODES.notFound,
+            errors,
+        );
     }
 
     static internal(): AppError {
         return new AppError(
             ERROR_MESSAGES.internal,
-            500,
+            HTTP_STATUS.internalServerError,
             ERROR_CODES.internal,
             [],
             false,

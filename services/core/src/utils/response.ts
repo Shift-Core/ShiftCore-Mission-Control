@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HTTP_STATUS } from "../config/constants";
 import type {
     TErrorResponse,
     TErrorResponseOptions,
@@ -10,7 +11,7 @@ export const sendSuccess = <T>({
     res,
     message,
     data,
-    statusCode = 200,
+    statusCode = HTTP_STATUS.ok,
 }: TSuccessResponseOptions<T>) => {
     const response: TSuccessResponse<T> = {
         success: true,
@@ -27,7 +28,7 @@ export const sendError = ({
     errorCode,
     message,
     errors = [],
-    statusCode = 500,
+    statusCode = HTTP_STATUS.internalServerError,
 }: TErrorResponseOptions) => {
     const traceId = req.get("x-request-id") ?? `req_${randomUUID()}`;
 

@@ -6,3 +6,5 @@ export type {
     TSuccessResponse,
     TSuccessResponseOptions,
 } from "./response.types";
+
+export type { TAsyncController } from "./controller.types";

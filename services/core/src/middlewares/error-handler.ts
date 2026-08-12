@@ -5,7 +5,11 @@ import type {
     RequestHandler,
     Response,
 } from "express";
-import { ENVIRONMENT, ERROR_MESSAGES } from "../config/constants";
+import {
+    ENVIRONMENT,
+    ERROR_MESSAGES,
+    HTTP_STATUS,
+} from "../config/constants";
 import type { TErrorResponse } from "../types";
 import { AppError } from "../utils/app-error";
 import { sendError } from "../utils/response";
@@ -16,13 +20,19 @@ const normalizeError = (error: unknown): AppError => {
     if (
         error instanceof SyntaxError
         && "status" in error
-        && error.status === 400
+        && error.status === HTTP_STATUS.badRequest
     ) {
         return AppError.badRequest(ERROR_MESSAGES.invalidJson);
     }
 
     if (error instanceof Error && ENVIRONMENT.isDevelopment) {
-        return new AppError(error.message, 500, undefined, [], false);
+        return new AppError(
+            error.message,
+            HTTP_STATUS.internalServerError,
+            undefined,
+            [],
+            false,
+        );
     }
 
     return AppError.internal();
