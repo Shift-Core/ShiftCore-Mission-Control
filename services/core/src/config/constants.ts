@@ -31,6 +31,7 @@ export const HTTP_STATUS = Object.freeze({
     unprocessableEntity: 422,
     tooManyRequests: 429,
     internalServerError: 500,
+    notImplemented: 501,
     serviceUnavailable: 503,
 });
 
@@ -45,6 +46,7 @@ export const ERROR_CODES = Object.freeze({
     invalidTransition: "INVALID_TRANSITION",
     rateLimited: "RATE_LIMITED",
     aiProviderUnavailable: "AI_PROVIDER_UNAVAILABLE",
+    notImplemented: "NOT_IMPLEMENTED",
     internal: "INTERNAL_ERROR",
 });
 
