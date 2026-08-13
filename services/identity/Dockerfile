@@ -11,6 +11,7 @@ RUN dotnet publish "IdentityApi.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/dataprotection-keys
 EXPOSE 5001
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "IdentityApi.dll"]
