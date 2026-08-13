@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Always run
+  # Always run — config + paths validation
   # ---------------------------------------------------------------------------
   config-validation:
     name: Config validation
@@ -33,6 +33,7 @@ jobs:
 
       - name: Validate docker compose
         run: |
+          cp .env.example .env
           docker compose config --quiet
           echo "docker compose config: OK"
 
@@ -72,10 +73,10 @@ jobs:
           echo "init-local-env contract: OK"
 
   # ---------------------------------------------------------------------------
-  # Identity — Owner: Mohamed Tawfik
+  # Identity — Owner: Mohamed Tawfik (.NET 8 / ASP.NET Core)
   # ---------------------------------------------------------------------------
   identity:
-    name: Identity (changed-area)
+    name: Identity — dotnet build
     runs-on: ubuntu-latest
     needs: config-validation
 
@@ -109,23 +110,47 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Setup .NET 8
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: dotnet restore
+
+      - name: Build (Release)
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: dotnet build --no-restore -c Release
+
+      - name: Verify EF migrations compile
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.8 2>/dev/null || true
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef migrations list --no-connect
+          echo "Migrations: OK"
+
       - name: Identity contract paths
         if: steps.changes.outputs.run == 'true'
         run: |
           test -f services/identity/Dockerfile
-          test -d services/identity
+          test -d services/identity/Migrations
           echo "Identity contract paths: OK"
-          # Real build/test owned by Mohamed Tawfik.
 
       - name: Skip
         if: steps.changes.outputs.run != 'true'
         run: echo "No Identity changes — skipped"
 
   # ---------------------------------------------------------------------------
-  # Core — Owner: Abo El Ala
+  # Core — Owner: Abo El Ala (Node.js / Express — placeholder)
   # ---------------------------------------------------------------------------
   core:
-    name: Core (changed-area)
+    name: Core — paths check
     runs-on: ubuntu-latest
     needs: config-validation
 
@@ -163,19 +188,18 @@ jobs:
         if: steps.changes.outputs.run == 'true'
         run: |
           test -f services/core/Dockerfile
-          test -d services/core
           echo "Core contract paths: OK"
-          # Real build/test owned by Abo El Ala.
+          # TODO (Abo El Ala): add npm ci + npm test when package.json and source are added
 
       - name: Skip
         if: steps.changes.outputs.run != 'true'
         run: echo "No Core changes — skipped"
 
   # ---------------------------------------------------------------------------
-  # AI — Owner: AI service owner
+  # AI — Owner: Peter (FastAPI / Python 3.12 — has real tests)
   # ---------------------------------------------------------------------------
   ai:
-    name: AI (changed-area)
+    name: AI — pytest
     runs-on: ubuntu-latest
     needs: config-validation
 
@@ -209,23 +233,39 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Setup Python 3.12
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/ai
+        run: pip install --no-cache-dir -r requirements.txt
+
+      - name: Run pytest
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/ai
+        env:
+          AI_PROVIDER: deterministic
+        run: python -m pytest tests/ -v
+
       - name: AI contract paths
         if: steps.changes.outputs.run == 'true'
         run: |
-          test -d services/ai
           test -f services/ai/Dockerfile
           echo "AI contract paths: OK"
-          # Real build/test owned by AI service owner.
 
       - name: Skip
         if: steps.changes.outputs.run != 'true'
         run: echo "No AI changes — skipped"
 
   # ---------------------------------------------------------------------------
-  # Web — Owner: Web service owner
+  # Web — Owner: Web owner (React placeholder — no source yet)
   # ---------------------------------------------------------------------------
   web:
-    name: Web (changed-area)
+    name: Web — paths check
     runs-on: ubuntu-latest
     needs: config-validation
 
@@ -264,7 +304,7 @@ jobs:
         run: |
           test -d apps/web
           echo "Web contract paths: OK"
-          # Real build/test owned by Web service owner.
+          # TODO (Web owner): add npm ci + npm test when React source is added
 
       - name: Skip
         if: steps.changes.outputs.run != 'true'

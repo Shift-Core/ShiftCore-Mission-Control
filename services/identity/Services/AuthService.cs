@@ -17,10 +17,17 @@ namespace IdentityApi.Services
 
         public async Task<(bool IsSuccess, ClaimsPrincipal? Principal, UserDto? UserDto)> ValidateCredentialsAsync(LoginRequest request)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            
-            // Dummy MVP check
-            if (user == null || user.PasswordHash != request.Password)
+            // Case-insensitive email lookup (DM-C01 — email is unique case-insensitively)
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+
+            // Verify against BCrypt hash — never compare plaintext
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            {
+                return (false, null, null);
+            }
+
+            if (!user.IsActive)
             {
                 return (false, null, null);
             }
@@ -29,19 +36,15 @@ namespace IdentityApi.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("teamId", user.TeamId.ToString())
             };
-            
-            if (!string.IsNullOrEmpty(user.TeamId))
-            {
-                claims.Add(new Claim("teamId", user.TeamId));
-            }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(claimsIdentity);
-            
-            var userDto = new UserDto(user.Id.ToString(), user.Name, user.Email, user.Role, user.TeamId);
+
+            var userDto = new UserDto(user.Id.ToString(), user.FullName, user.Email, user.Role, user.TeamId.ToString());
 
             return (true, principal, userDto);
         }
