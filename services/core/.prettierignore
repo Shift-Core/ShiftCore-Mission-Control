@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+src/generated/
+prisma/migrations/
+yarn.lock
+*.json

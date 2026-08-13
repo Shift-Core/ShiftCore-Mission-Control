@@ -3,6 +3,10 @@ node_modules/
 .pnp
 .pnp.js
 
+# Prisma
+generated/
+
+
 # Testing
 coverage/
 

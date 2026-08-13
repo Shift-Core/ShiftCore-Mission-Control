@@ -1,0 +1,5 @@
+node_modules
+src/generated
+dist
+.env
+yarn-error.log
