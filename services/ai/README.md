@@ -38,6 +38,55 @@ That endpoint is owned by R24-12:
 ```text
 POST /api/ai/v1/summaries/weekly/preview
 ````
+## R24-12 Weekly Summary Preview
+
+R24-12 exposes the release weekly-summary preview endpoint:
+
+```text
+POST /api/ai/v1/summaries/weekly/preview
+````
+
+The endpoint accepts the approved KPI snapshot contract and returns a
+non-persisted deterministic weekly summary.
+
+The response uses:
+
+```text
+source=deterministic
+schemaVersion=1.0
+```
+
+Given the same material request input, the endpoint returns the same material:
+
+* source snapshot;
+* section keys;
+* section order;
+* section content.
+
+`generatedAt` may differ between requests.
+
+Invalid request data returns the release-safe validation envelope:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "data": null,
+  "errorCode": "VALIDATION_ERROR",
+  "errors": [],
+  "traceId": "req_example"
+}
+```
+
+`X-Request-Id`, when supplied, is preserved as the response correlation
+identifier.
+
+The release contract defines the endpoint as protected by the Identity-issued
+`sc_token` session cookie. Authentication enforcement is intentionally pending
+R24-09 and must be integrated before R24-12 can be considered complete.
+
+The preview does not persist generated summaries and does not require an
+external AI provider.
 
 ## Deterministic Release Mode
 
