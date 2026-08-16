@@ -28,8 +28,13 @@ namespace IdentityApi.Data
                     .HasDefaultValueSql("gen_random_uuid()");
 
                 // DM-C01: case-insensitive unique index on email.
-                // Enforced at the database level via LOWER(email) expression index.
-                // Named per the constraint contract: uq_user_email_ci.
+                // The HasIndex annotation tells EF Core about the index for query/validation
+                // purposes. The actual DDL in the migration uses a raw SQL expression index
+                // on LOWER(email) so that case-insensitivity is enforced at the database level.
+                // Index name per constraint contract: uq_user_email_ci.
+                // NOTE: EF Core cannot express functional/expression indexes natively;
+                //       the migration overrides the generated index DDL with:
+                //         CREATE UNIQUE INDEX uq_user_email_ci ON identity.users (LOWER(email));
                 entity.HasIndex(e => e.Email)
                     .IsUnique()
                     .HasDatabaseName("uq_user_email_ci");

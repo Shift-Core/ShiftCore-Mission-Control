@@ -45,6 +45,27 @@ services:
       start_period: 10s
 
   # ---------------------------------------------------------------------------
+  # Identity Migrations (EF Core)
+  # Owner: Mohamed Tawfik
+  # Runs dotnet ef database update against postgres and exits (one-shot).
+  # Identity API must not start until this service completes successfully.
+  # ---------------------------------------------------------------------------
+  identity-migrations:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+      target: migrations
+    container_name: shiftcore-identity-migrations
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
+    networks:
+      - shiftcore-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Identity API (ASP.NET Core)
   # Owner: Mohamed Tawfik
   # Path: services/identity
@@ -53,6 +74,7 @@ services:
     build:
       context: ./services/identity
       dockerfile: Dockerfile
+      target: final
     container_name: shiftcore-identity
     restart: unless-stopped
     environment:
@@ -72,6 +94,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      identity-migrations:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5001/health"]
       interval: 10s
