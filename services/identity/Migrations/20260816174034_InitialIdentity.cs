@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -34,17 +34,20 @@ namespace IdentityApi.Migrations
                     table.PrimaryKey("PK_users", x => x.id);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "uq_user_email_ci",
-                schema: "identity",
-                table: "users",
-                column: "email",
-                unique: true);
+            // DM-C01: case-insensitive unique index on email.
+            // EF Core cannot natively generate expression/functional indexes.
+            // We emit the raw SQL directly so PostgreSQL enforces uniqueness
+            // on LOWER(email) — not just on the raw column value.
+            migrationBuilder.Sql(
+                "CREATE UNIQUE INDEX uq_user_email_ci ON identity.users (LOWER(email));");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(
+                "DROP INDEX IF EXISTS identity.uq_user_email_ci;");
+
             migrationBuilder.DropTable(
                 name: "users",
                 schema: "identity");
