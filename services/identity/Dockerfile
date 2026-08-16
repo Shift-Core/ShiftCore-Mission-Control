@@ -39,7 +39,7 @@ WORKDIR /src
 RUN dotnet tool install --global dotnet-ef --version 8.0.30
 ENV PATH="$PATH:/root/.dotnet/tools"
 
-ENTRYPOINT ["dotnet", "ef", "database", "update", "--no-build"]
+ENTRYPOINT ["dotnet", "ef", "database", "update"]
 
 # ── Stage 4: final (runtime) ─────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
