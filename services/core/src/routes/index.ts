@@ -6,6 +6,7 @@ import projectRoutes from "./project.routes";
 import sprintRoutes from "./sprint.routes";
 import taskRoutes from "./task.routes";
 import healthController from "../controllers/health.controller";
+import missionControlRoutes from "./mission-control.routes";
 
 const router = Router();
 const apiRouter = Router();
@@ -18,6 +19,7 @@ apiRouter.use("/projects", projectRoutes);
 apiRouter.use("/sprints", sprintRoutes);
 apiRouter.use("/tasks", taskRoutes);
 apiRouter.use("/blockers", blockerRoutes);
+apiRouter.use('/mission-control', missionControlRoutes)
 
 router.use(API.basePath, apiRouter);
 
