@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace IdentityApi.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialUserSchema : Migration
+    public partial class InitialIdentity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,20 +34,17 @@ namespace IdentityApi.Migrations
                     table.PrimaryKey("PK_users", x => x.id);
                 });
 
-            // DM-C01: case-insensitive unique index on email.
-            // EF Core cannot generate expression indexes natively;
-            // we use raw SQL to create the LOWER(email) expression index.
-            migrationBuilder.Sql(
-                "CREATE UNIQUE INDEX uq_user_email_ci " +
-                "ON identity.users (LOWER(email));");
+            migrationBuilder.CreateIndex(
+                name: "uq_user_email_ci",
+                schema: "identity",
+                table: "users",
+                column: "email",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(
-                "DROP INDEX IF EXISTS identity.uq_user_email_ci;");
-
             migrationBuilder.DropTable(
                 name: "users",
                 schema: "identity");
