@@ -15,8 +15,8 @@ export interface ISprint {
     projectId: string;
     name: string;
     goal: string;
-    startDate: string;
-    endDate: string;
+    startDate: Date;
+    endDate: Date;
     status: ISprintStatus;
 }
 
@@ -29,7 +29,7 @@ export interface ITask {
     status: ITaskStatus;
     ownerName: string;
     blocked: boolean;
-    updatedAt: string;
+    updatedAt: Date;
 }
 
 export interface IBlocker {
@@ -40,19 +40,23 @@ export interface IBlocker {
     title: string;
     status: IBlockerStatus;
     ownerName: string;
-    createdAt: string;
+    createdAt: Date;
 }
 
-export interface IKPIs {
+export interface ITaskKPIs {
     plannedTasks: number;
     toDoTasks: number;
     inProgressTasks: number;
     doneTasks: number;
+}
+
+export interface IKPIs extends ITaskKPIs {
     completionRate: number;
     activeBlockers: number;
 }
 
 export type TMissionControlResponse = {
+    schemaVersion: "1.0";
     project: IProject;
     sprint: ISprint;
     tasks: ITask[];
