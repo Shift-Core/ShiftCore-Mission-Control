@@ -63,3 +63,7 @@ export type TMissionControlResponse = {
     activeBlockers: IBlocker[];
     kpis: IKPIs;
 }
+
+export type TMissionControlRequest = {
+    team_id: string;
+}
