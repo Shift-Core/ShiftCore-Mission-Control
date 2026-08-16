@@ -69,7 +69,7 @@ class MissionControlService {
 
             completionRate:
                 tasks.length > 0
-                    ? (tasksKPIs.doneTasks * 100) / tasks.length
+                    ? Number(((tasksKPIs.doneTasks * 100) / tasks.length).toFixed(2))
                     : 0,
 
             activeBlockers: blockers.length,
