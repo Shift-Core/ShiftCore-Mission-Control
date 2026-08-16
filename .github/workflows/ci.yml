@@ -130,7 +130,7 @@ jobs:
         if: steps.changes.outputs.run == 'true'
         working-directory: services/identity
         run: |
-          dotnet tool install --global dotnet-ef --version 8.0.8 2>/dev/null || true
+          dotnet tool install --global dotnet-ef --version 8.0.30 2>/dev/null || true
           export PATH="$PATH:$HOME/.dotnet/tools"
           dotnet ef migrations list --no-connect
           echo "Migrations: OK"
