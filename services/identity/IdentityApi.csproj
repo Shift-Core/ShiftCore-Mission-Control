@@ -26,6 +26,9 @@
 
     <!-- PostgreSQL EF Core provider -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+
+    <!-- JWT RS256 Bearer authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.30" />
   </ItemGroup>
 
 </Project>
