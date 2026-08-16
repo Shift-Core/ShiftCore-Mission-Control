@@ -1,9 +1,9 @@
 import { prisma } from "../lib/prisma";
-import { TMissionControlResponse } from "../types/mission.types";
+import { TMissionControlRequest, TMissionControlResponse } from "../types/mission.types";
 
 class MissionControlService {
-    async fetchDashboardData(): Promise<TMissionControlResponse | null> {
-        const project = await prisma.project.findFirst()
+    async fetchDashboardData(query: TMissionControlRequest): Promise<TMissionControlResponse | null> {
+        const project = await prisma.project.findFirst({ where: { team_id: query.team_id } })
         if (!project) return null;
 
         const [sprint, tasks] = await Promise.all([
