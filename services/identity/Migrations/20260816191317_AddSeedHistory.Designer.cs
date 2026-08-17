@@ -12,18 +12,48 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IdentityApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260811185214_InitialUserSchema")]
-    partial class InitialUserSchema
+    [Migration("20260816191317_AddSeedHistory")]
+    partial class AddSeedHistory
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "8.0.30")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("IdentityApi.Models.SeedHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ExecutedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("executed_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
+
+                    b.Property<string>("SeedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("seed_name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeedName")
+                        .IsUnique()
+                        .HasDatabaseName("uq_seed_name");
+
+                    b.ToTable("seed_history", "identity");
+                });
 
             modelBuilder.Entity("IdentityApi.Models.User", b =>
                 {

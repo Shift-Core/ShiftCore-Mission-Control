@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace IdentityApi.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialUserSchema : Migration
+    public partial class InitialIdentity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -35,11 +35,11 @@ namespace IdentityApi.Migrations
                 });
 
             // DM-C01: case-insensitive unique index on email.
-            // EF Core cannot generate expression indexes natively;
-            // we use raw SQL to create the LOWER(email) expression index.
+            // EF Core cannot natively generate expression/functional indexes.
+            // We emit the raw SQL directly so PostgreSQL enforces uniqueness
+            // on LOWER(email) — not just on the raw column value.
             migrationBuilder.Sql(
-                "CREATE UNIQUE INDEX uq_user_email_ci " +
-                "ON identity.users (LOWER(email));");
+                "CREATE UNIQUE INDEX uq_user_email_ci ON identity.users (LOWER(email));");
         }
 
         /// <inheritdoc />
