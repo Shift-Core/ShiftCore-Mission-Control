@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
       target: final
     container_name: shiftcore-identity-seed
-    command: ["dotnet", "IdentityApi.dll", "--seed"]
+    command: [ "dotnet", "IdentityApi.dll", "--seed" ]
     environment:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
       SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-local_dev_only_change_me}
@@ -98,6 +98,7 @@ services:
     build:
       context: ./services/identity
       dockerfile: Dockerfile
+      target: final
     container_name: shiftcore-identity
     restart: unless-stopped
     environment:
@@ -145,7 +146,7 @@ services:
       DATABASE_URL: "postgresql://${CORE_DB_USER:-core_app}:${CORE_DB_PASSWORD:-core_local_dev_only}@postgres:5432/${POSTGRES_DB:-shiftcore}?schema=core"
       JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
-      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public.pem}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
     volumes:
       # Hot reload application code
       - ./services/core/src:/app/src
@@ -158,8 +159,6 @@ services:
 
       # TypeScript config
       - ./services/core/tsconfig.json:/app/tsconfig.json
-
-      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
     networks:
       - shiftcore-net
     expose:
