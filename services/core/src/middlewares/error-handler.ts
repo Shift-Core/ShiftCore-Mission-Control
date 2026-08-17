@@ -5,6 +5,7 @@ import type {
   RequestHandler,
   Response,
 } from "express";
+import jwt from "jsonwebtoken";
 import { ENVIRONMENT, ERROR_MESSAGES, HTTP_STATUS } from "../config/constants";
 import type { TErrorResponse } from "../types";
 import { AppError } from "../utils/app-error";
@@ -12,6 +13,15 @@ import { sendError } from "../utils/response";
 
 const normalizeError = (error: unknown): AppError => {
   if (error instanceof AppError) return error;
+
+  if (error instanceof jwt.TokenExpiredError) return AppError.authExpired();
+
+  if (
+    error instanceof jwt.JsonWebTokenError ||
+    error instanceof jwt.NotBeforeError
+  ) {
+    return AppError.authInvalid();
+  }
 
   if (
     error instanceof SyntaxError &&
