@@ -1,3 +1,4 @@
+import { TEAM_ID } from "../config/constants";
 import {
   BlockerStatus,
   ProjectStatus,
@@ -8,7 +9,6 @@ import { prisma } from "../lib/prisma";
 
 const PROJECT_ID = "prj_demo";
 const SPRINT_ID = "spr_demo";
-const TEAM_ID = "00000000-0000-4000-8000-000000000001";
 
 async function seed(): Promise<void> {
   await prisma.$transaction(async (tx) => {
