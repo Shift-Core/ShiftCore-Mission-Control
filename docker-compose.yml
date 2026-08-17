@@ -45,6 +45,51 @@ services:
       start_period: 10s
 
   # ---------------------------------------------------------------------------
+  # Identity Migrations (EF Core)
+  # Owner: Mohamed Tawfik
+  # Runs dotnet ef database update against postgres and exits (one-shot).
+  # Identity API must not start until this service completes successfully.
+  # ---------------------------------------------------------------------------
+  identity-migrations:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+      target: migrations
+    container_name: shiftcore-identity-migrations
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
+    networks:
+      - shiftcore-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Identity Seeder
+  # Owner: Mohamed Tawfik
+  # Runs dotnet ef DatabaseSeeder and exits.
+  # ---------------------------------------------------------------------------
+  identity-seed:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+      target: final
+    container_name: shiftcore-identity-seed
+    command: ["dotnet", "IdentityApi.dll", "--seed"]
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-local_dev_only_change_me}
+    networks:
+      - shiftcore-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-migrations:
+        condition: service_completed_successfully
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Identity API (ASP.NET Core)
   # Owner: Mohamed Tawfik
   # Path: services/identity
@@ -61,7 +106,7 @@ services:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-shiftcore};Username=${IDENTITY_DB_USER:-identity_app};Password=${IDENTITY_DB_PASSWORD:-identity_local_dev_only};Search Path=identity"
       Jwt__Issuer: ${JWT_ISSUER:-shiftcore-identity}
       Jwt__Audience: ${JWT_AUDIENCE:-shiftcore-api}
-      Jwt__PrivateKeyPath: ${JWT_PRIVATE_KEY_PATH:-/run/secrets/jwt_private.pem}
+      Jwt__PrivateKeyPath: ${JWT_PRIVATE_KEY_PATH:-/run/secrets/jwt_private}
       SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
     networks:
       - shiftcore-net
@@ -69,9 +114,13 @@ services:
       - "5001"
     volumes:
       - identity_dpkeys:/app/dataprotection-keys
+    secrets:
+      - jwt_private
     depends_on:
       postgres:
         condition: service_healthy
+      identity-seed:
+        condition: service_completed_successfully
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://127.0.0.1:5001/health" ]
       interval: 10s
@@ -110,10 +159,13 @@ services:
       # TypeScript config
       - ./services/core/tsconfig.json:/app/tsconfig.json
 
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
     networks:
       - shiftcore-net
     expose:
       - "4000"
+    secrets:
+      - jwt_public
     depends_on:
       postgres:
         condition: service_healthy
@@ -141,12 +193,14 @@ services:
       CORE_INTERNAL_URL: ${CORE_INTERNAL_URL:-http://core:4000}
       JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
-      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public.pem}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
       AI_PROVIDER: ${AI_PROVIDER:-deterministic}
     networks:
       - shiftcore-net
     expose:
       - "8000"
+    secrets:
+      - jwt_public
     depends_on:
       - core
     healthcheck:
@@ -204,3 +258,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+secrets:
+  jwt_private:
+    file: ./secrets/jwt_private.pem
+  jwt_public:
+    file: ./secrets/jwt_public.pem

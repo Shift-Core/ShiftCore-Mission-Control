@@ -4,92 +4,141 @@ using Microsoft.EntityFrameworkCore;
 namespace IdentityApi.Data
 {
     /// <summary>
-    /// Idempotent seed/reset command for the Identity service.
-    ///
-    /// Purpose: create the minimum accepted Identity release fixture — one active Lead account.
+    /// Idempotent seed command for the Identity service.
     ///
     /// Usage (after migrations are applied):
-    ///   dotnet run --project services/identity -- --seed
+    ///   dotnet IdentityApi.dll --seed
     ///
-    /// Rules enforced:
-    ///   - Password is read from the SEED_LEAD_PASSWORD environment variable at runtime.
-    ///   - No plaintext password is committed to Git or logged.
-    ///   - Re-running is idempotent: upserts by email, no duplicate users created.
-    ///   - The stored credential is a real BCrypt hash (cost 11).
+    /// Idempotency mechanism:
+    ///   Checks <c>identity.seed_history</c> for the seed identifier before doing anything.
+    ///   If the identifier already exists, the seed is skipped without touching users or data.
+    ///   This is a reliable marker regardless of current user count.
     ///
-    /// See wiki: SMC-94 Scope §4 — Safe deterministic seed/reset.
+    /// Transaction safety:
+    ///   All writes (users + seed_history record) happen in a single transaction.
+    ///   If anything fails, the transaction is rolled back and the seed is NOT marked complete.
+    ///   The next run will retry.
+    ///
+    /// Password rules:
+    ///   Password is read from SEED_DEFAULT_PASSWORD env var at runtime.
+    ///   No plaintext password is committed to Git, logged, or returned.
+    ///   BCrypt cost factor: 11 (matches project security requirement).
+    ///
+    /// See ARCHITECTURE.md §3 — Migration and Seed Strategy.
     /// </summary>
     public static class DatabaseSeeder
     {
-        // Deterministic release team_id.
-        // Must match the seeded Project.team_id used by the Core service (DM-C06).
+        // ── Seed identifier ────────────────────────────────────────────────────
+        // This is the idempotency key stored in identity.seed_history.
+        // Changing this value will cause the seed to re-run (use only for intentional re-seeds).
+        private const string SeedName = "R24-04-Identity-InitialUsers";
+
+        // ── Shared team (DM-C06) ───────────────────────────────────────────────
+        // Must match the seeded Project.team_id used by the Core service.
         private static readonly Guid ReleaseTeamId = Guid.Parse("3b5f3ec5-cc27-4d68-8f4d-d80545d6b9c1");
 
-        // Deterministic Lead user ID — stable across resets.
-        private static readonly Guid LeadUserId = Guid.Parse("aaaaaaaa-0000-4000-8000-000000000001");
-
-        // Lead email (public fixture — safe to commit)
-        private const string LeadEmail = "lead@shiftcore.local";
-        private const string LeadFullName = "Demo Lead";
-        private const string LeadRole = "Lead";
+        // ── Seed users ─────────────────────────────────────────────────────────
+        // Stable UUIDs ensure upserts are deterministic on re-run.
+        // Roles match the authorization contract shared with Core and AI services.
+        private static readonly (Guid Id, string Email, string FullName, string Role)[] SeedUsers =
+        [
+            (Guid.Parse("aaaaaaaa-0000-4000-8000-000000000001"), "lead@shiftcore.local",     "Demo Lead",      "Lead"),
+            (Guid.Parse("aaaaaaaa-0000-4000-8000-000000000002"), "super@shiftcore.local",    "Super Admin",    "Super"),
+            (Guid.Parse("aaaaaaaa-0000-4000-8000-000000000003"), "core@shiftcore.local",     "Core Owner",     "Core"),
+            (Guid.Parse("aaaaaaaa-0000-4000-8000-000000000004"), "identity@shiftcore.local", "Identity Owner", "Identity"),
+        ];
 
         /// <summary>
-        /// Seeds one active Lead user. Idempotent — safe to re-run.
-        /// Password is read from the SEED_LEAD_PASSWORD environment variable.
+        /// Seeds the release fixture users. Idempotent — safe to re-run any number of times.
         /// </summary>
         public static async Task SeedAsync(ApplicationDbContext db)
         {
-            // Read password from environment — never from Git
-            var plainPassword = Environment.GetEnvironmentVariable("SEED_LEAD_PASSWORD");
+            Console.WriteLine("[Seed] Checking seed history for '{0}'...", SeedName);
+
+            // ── Idempotency check ──────────────────────────────────────────────
+            var alreadyApplied = await db.SeedHistory.AnyAsync(s => s.SeedName == SeedName);
+            if (alreadyApplied)
+            {
+                Console.WriteLine("[Seed] Seed '{0}' already applied — nothing to do. Exiting.", SeedName);
+                return;
+            }
+
+            // ── Read password from environment ─────────────────────────────────
+            // SEED_DEFAULT_PASSWORD is preferred; SEED_LEAD_PASSWORD is accepted for
+            // backward compatibility with earlier single-user seed scripts.
+            var plainPassword =
+                Environment.GetEnvironmentVariable("SEED_DEFAULT_PASSWORD") ??
+                Environment.GetEnvironmentVariable("SEED_LEAD_PASSWORD");
+
             if (string.IsNullOrWhiteSpace(plainPassword))
             {
                 throw new InvalidOperationException(
-                    "SEED_LEAD_PASSWORD environment variable is not set. " +
+                    "SEED_DEFAULT_PASSWORD environment variable is not set. " +
                     "Set it before running the seed command. " +
                     "Do not commit any password to Git.");
             }
 
-            // Hash the password with BCrypt cost 11
+            Console.WriteLine("[Seed] Applying seed '{0}'...", SeedName);
+
+            // Hash once — all dev seed users share the same password for convenience.
+            // In production, each user would be provisioned separately.
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword, workFactor: 11);
 
-            // Upsert: find existing lead by stable ID or email
-            var existing = await db.Users.FirstOrDefaultAsync(u => u.Id == LeadUserId || u.Email == LeadEmail);
-
-            if (existing == null)
+            // ── Transaction ────────────────────────────────────────────────────
+            // All writes succeed together or not at all.
+            // If SaveChanges fails, the transaction is rolled back and the seed_history
+            // record is NOT inserted, so the next run will retry.
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            try
             {
-                // Create new Lead
-                db.Users.Add(new User
+                var created = 0;
+
+                foreach (var (id, email, fullName, role) in SeedUsers)
                 {
-                    Id = LeadUserId,
-                    TeamId = ReleaseTeamId,
-                    FullName = LeadFullName,
-                    Email = LeadEmail,
-                    PasswordHash = passwordHash,
-                    Role = LeadRole,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    var exists = await db.Users.AnyAsync(u => u.Id == id);
+                    if (!exists)
+                    {
+                        db.Users.Add(new User
+                        {
+                            Id           = id,
+                            TeamId       = ReleaseTeamId,
+                            FullName     = fullName,
+                            Email        = email,
+                            PasswordHash = passwordHash,
+                            Role         = role,
+                            IsActive     = true,
+                            CreatedAt    = DateTime.UtcNow,
+                            UpdatedAt    = DateTime.UtcNow,
+                        });
+                        created++;
+                        Console.WriteLine("[Seed]   + Creating user: {0} ({1})", email, role);
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Seed]   ~ User already exists, skipping: {0}", email);
+                    }
+                }
+
+                // Mark seed as applied — this is what prevents re-runs.
+                db.SeedHistory.Add(new SeedHistory
+                {
+                    SeedName    = SeedName,
+                    ExecutedAt  = DateTime.UtcNow,
                 });
 
                 await db.SaveChangesAsync();
-                Console.WriteLine("[Seed] Lead user created: {0}", LeadEmail);
+                await transaction.CommitAsync();
+
+                Console.WriteLine("[Seed] Done. Created {0} user(s). Seed '{1}' recorded in seed_history.", created, SeedName);
+                Console.WriteLine("[Seed] team_id={0}", ReleaseTeamId);
             }
-            else
+            catch (Exception ex)
             {
-                // Reset existing Lead to the known fixture state (idempotent reset)
-                existing.FullName = LeadFullName;
-                existing.Email = LeadEmail;
-                existing.PasswordHash = passwordHash;
-                existing.Role = LeadRole;
-                existing.TeamId = ReleaseTeamId;
-                existing.IsActive = true;
-                existing.UpdatedAt = DateTime.UtcNow;
-
-                await db.SaveChangesAsync();
-                Console.WriteLine("[Seed] Lead user reset: {0}", LeadEmail);
+                await transaction.RollbackAsync();
+                Console.Error.WriteLine("[Seed] FAILED — transaction rolled back. Error: {0}", ex.Message);
+                // Re-throw so the container exits non-zero, triggering a Compose failure signal.
+                throw;
             }
-
-            Console.WriteLine("[Seed] Done. team_id={0}", ReleaseTeamId);
         }
     }
 }
