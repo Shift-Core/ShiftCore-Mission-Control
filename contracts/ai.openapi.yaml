@@ -70,7 +70,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 success: false
-                message: Authentication required
+                message: Authentication required.
                 data: null
                 errorCode: AUTH_REQUIRED
                 errors: []
