@@ -8,7 +8,7 @@ contract without making the release dependent on an external AI provider.
 
 ## Ownership
 
-- Jira: SMC-97 / R24-05
+- Jira: SMC-97 / R24-05 foundation; SMC-104 / R24-12 endpoint
 - Owner: Peter
 - Reviewer: Mohamed Sameh
 - Stack: FastAPI, Pydantic
@@ -38,6 +38,73 @@ That endpoint is owned by R24-12:
 ```text
 POST /api/ai/v1/summaries/weekly/preview
 ````
+## R24-12 Weekly Summary Preview
+
+R24-12 exposes the release weekly-summary preview endpoint:
+
+```text
+POST /api/ai/v1/summaries/weekly/preview
+````
+
+The endpoint accepts the approved KPI snapshot contract and returns a
+non-persisted deterministic weekly summary.
+
+The response uses:
+
+```text
+source=deterministic
+schemaVersion=1.0
+```
+
+Given the same material request input, the endpoint returns the same material:
+
+* source snapshot;
+* section keys;
+* section order;
+* section content.
+
+`generatedAt` may differ between requests.
+
+Invalid request data returns the release-safe validation envelope:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "data": null,
+  "errorCode": "VALIDATION_ERROR",
+  "errors": [],
+  "traceId": "req_example"
+}
+```
+
+`X-Request-Id`, when supplied, is preserved as the response correlation
+identifier.
+
+The endpoint is protected by the Identity-issued `sc_token` session cookie.
+AI/Data validates the RS256 JWT locally using only the mounted public key. It
+validates the approved issuer, audience, lifetime, and required release claims;
+it does not call Identity for each protected request. Missing, malformed,
+expired, wrongly scoped, incorrectly signed, or incomplete session tokens return
+the safe `401 AUTH_REQUIRED` envelope without exposing JWT or key details.
+
+Runtime authentication uses:
+
+```text
+JWT_PUBLIC_KEY_PATH=/run/secrets/jwt_public
+JWT_ISSUER=shiftcore-identity
+JWT_AUDIENCE=shiftcore-api
+SC_TOKEN_COOKIE_NAME=sc_token
+```
+
+The preview does not persist generated summaries and does not require an
+external AI provider.
+
+For the current R24-12 contract, the request uses the approved
+`core-mission-control-v1` KPI snapshot shape. The browser-copied snapshot is a
+release evidence contract, not cryptographic provenance; broader authoritative
+server-to-server Core retrieval is outside this endpoint implementation and is
+subject to the release contract-drift/stabilization review.
 
 ## Deterministic Release Mode
 
@@ -201,6 +268,11 @@ The R24-05 suite covers:
 * zero-planned-task behavior;
 * health without a provider key.
 
+R24-12 additionally verifies the protected preview route with RS256 session
+tokens, including missing cookie, malformed token, invalid signature, expiry,
+issuer/audience mismatch, missing required claims, safe `401` responses, and
+runtime OpenAPI security metadata.
+
 ## Docker Compose
 
 Build the AI/Data image:
@@ -229,6 +301,22 @@ docker compose exec -T ai \
 ```
 
 The Compose service key is `ai`.
+
+On SELinux-enforcing development hosts such as Fedora, file-backed Compose
+secrets may retain a host label that prevents the container from reading the
+JWT public key. If `/run/secrets/jwt_public` returns `Permission denied`, label
+the generated local key files for container access and recreate the service:
+
+```bash
+sudo chcon -t container_file_t \
+  secrets/jwt_public.pem \
+  secrets/jwt_private.pem
+
+docker compose up -d --force-recreate --no-deps ai
+```
+
+This is a local-development filesystem-label fix only; key contents must never
+be committed or printed.
 
 Port `8000` is an internal service port; release browser-facing traffic is
 expected to pass through the Nginx gateway rather than directly exposing the

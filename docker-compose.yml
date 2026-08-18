@@ -193,6 +193,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
       JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
+      SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
       AI_PROVIDER: ${AI_PROVIDER:-deterministic}
     networks:
       - shiftcore-net

@@ -128,3 +128,11 @@ class SummaryPreviewResponse(StrictModel):
     ] = "Weekly summary preview generated"
 
     data: SummaryPreviewData
+
+class ErrorResponse(StrictModel):
+    success: Literal[False] = False
+    message: str = Field(min_length=1)
+    data: None = None
+    errorCode: str = Field(min_length=1)
+    errors: list[dict[str, str]] = Field(default_factory=list)
+    traceId: str = Field(min_length=1)

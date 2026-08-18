@@ -4,10 +4,9 @@ info:
   title: ShiftCore AI/Data API
   version: 0.1.0
   description: >
-    R24-05 AI/Data foundation contract. This release foundation defines
-    the deterministic weekly-summary request and response schemas and
-    exposes the service health check. The protected weekly-summary preview
-    HTTP endpoint is implemented separately in R24-12.
+    ShiftCore AI/Data release contract. R24-12 defines the protected,
+    non-persisted deterministic weekly-summary preview endpoint using the
+    approved KPI snapshot and deterministic summary schemas.
 
 servers:
   - url: http://ai:8000
@@ -32,7 +31,80 @@ paths:
                 service: ai
                 mode: deterministic
 
+  /api/ai/v1/summaries/weekly/preview:
+    post:
+      summary: Generate deterministic weekly-summary preview
+      operationId: previewWeeklySummary
+      tags:
+        - summaries
+      description: >
+        Generates a non-persisted deterministic weekly-summary preview from
+        the approved KPI snapshot. The same material input produces the same
+        material sections; generatedAt may differ between requests.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SummaryPreviewRequest"
+      responses:
+        "200":
+          description: Weekly summary preview generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryPreviewResponse"
+
+        "401":
+          description: Missing, invalid, or expired authenticated session
+          headers:
+            X-Request-Id:
+              description: Request correlation identifier
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Authentication required.
+                data: null
+                errorCode: AUTH_REQUIRED
+                errors: []
+                traceId: req_example
+
+        "422":
+          description: Request validation failed
+          headers:
+            X-Request-Id:
+              description: Request correlation identifier
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Validation failed
+                data: null
+                errorCode: VALIDATION_ERROR
+                errors: []
+                traceId: req_example
+
 components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: sc_token
+      description: >
+        RS256-signed session JWT issued by Identity and stored in the
+        HttpOnly sc_token cookie. AI/Data validates the token using the
+        approved Identity public key.
   schemas:
     HealthResponse:
       type: object
@@ -208,3 +280,43 @@ components:
             - Weekly summary preview generated
         data:
           $ref: "#/components/schemas/SummaryPreviewData"
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - message
+        - data
+        - errorCode
+        - errors
+        - traceId
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+
+        message:
+          type: string
+          minLength: 1
+
+        data:
+          type: object
+          nullable: true
+          example: null
+
+        errorCode:
+          type: string
+          minLength: 1
+
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+
+        traceId:
+          type: string
+          minLength: 1
