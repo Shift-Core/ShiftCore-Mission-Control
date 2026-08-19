@@ -1,59 +1,84 @@
-import { Loader2, AlertCircle, FolderOpen } from 'lucide-react'
+import { useState } from "react"
+
+
+import MissionHeader from "../components/mission-control/MissionHeader"
+import ProjectOverview from "../components/mission-control/ProjectOverview"
+import SprintMetrics from "../components/mission-control/SprintMetrics"
+import TaskBoard from "../components/mission-control/TaskBoard"
+import ActiveBlocker from "../components/mission-control/ActiveBlocker"
+import WeeklySummary from "../components/mission-control/WeeklySummary"
+import StartTaskDialog from "../components/mission-control/StartTaskDialog"
+import MissionState from "../components/mission-control/MissionState"
 
 function MissionControl() {
-  const fixtureState = new URLSearchParams(window.location.search).get('state')
+  const params = new URLSearchParams(window.location.search)
+  const fixtureState = params.get("state") || "default"
 
-  if (fixtureState === 'loading') {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8f9fc] p-8">
-        <div className="flex flex-col items-center gap-4 text-[#5f6b82]">
-          <Loader2 className="size-8 animate-spin text-[#0052cc]" />
-          <p className="text-lg font-medium">Loading Mission Control...</p>
-        </div>
-      </main>
-    )
-  }
+  const [selectedTask, setSelectedTask] = useState(null)
 
-  if (fixtureState === 'error') {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8f9fc] p-8">
-        <div className="flex max-w-md flex-col items-center text-center">
-          <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-[#fef2f2]">
-            <AlertCircle className="size-8 text-[#ba1a1a]" />
-          </div>
-          <h2 className="text-2xl font-semibold text-[#051a3e]">Failed to load data</h2>
-          <p className="mt-2 text-[#5f6b82]">We encountered an error while loading your mission control dashboard. Please try again later.</p>
-        </div>
-      </main>
-    )
-  }
-
-  if (fixtureState === 'empty') {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8f9fc] p-8">
-        <div className="flex max-w-md flex-col items-center text-center">
-          <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-[#f8fafc] border border-[#e2e8f0]">
-            <FolderOpen className="size-8 text-[#94a3b8]" />
-          </div>
-          <h2 className="text-2xl font-semibold text-[#051a3e]">No missions found</h2>
-          <p className="mt-2 text-[#5f6b82]">You don't have any active missions. Create a new one to get started.</p>
-        </div>
-      </main>
-    )
-  }
+  const showState = ["loading", "empty", "error"].includes(
+    fixtureState,
+  )
 
   return (
-    <main className="min-h-screen bg-[#f8f9fc] p-8">
-      <div className="mx-auto max-w-7xl">
-        <h1 className="text-3xl font-bold text-[#051a3e]">
-          ShiftCore Mission Control
-        </h1>
+    <div className="min-h-screen bg-[#f7f8fc] text-[#10213a]">
+      <MissionHeader />
 
-        <p className="mt-2 text-[#5f6b82]">
-          Mission Control combined screen
-        </p>
-      </div>
-    </main>
+      <main className="px-5 py-7 md:px-7">
+        <div className="mx-auto max-w-[1388px]">
+          {showState ? (
+            <MissionState
+              type={fixtureState}
+              onRetry={() => {
+                window.location.href = "/mission-control"
+              }}
+            />
+          ) : (
+            <>
+              <ProjectOverview />
+
+              <div className="mt-6">
+                <SprintMetrics />
+              </div>
+
+              <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_445px]">
+                <TaskBoard
+                  onStart={(task) => setSelectedTask(task)}
+                />
+
+                <aside className="space-y-6">
+                  <ActiveBlocker />
+
+                  <WeeklySummary />
+                </aside>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+
+      <footer className="mt-8 border-t border-[#c9ced8] bg-[#eef2ff] px-7 py-5">
+        <div className="mx-auto flex max-w-[1388px] flex-col gap-4 text-[14px] text-[#596274] md:flex-row md:items-center md:justify-between">
+          <p>© 2026 ShiftCore Mission Control. Enterprise Edition.</p>
+
+          <div className="flex gap-6">
+            <button type="button">Privacy Policy</button>
+            <button type="button">Terms of Service</button>
+            <button type="button">Support</button>
+            <button type="button">Documentation</button>
+          </div>
+        </div>
+      </footer>
+
+      <StartTaskDialog
+        task={selectedTask}
+        open={Boolean(selectedTask)}
+        onCancel={() => setSelectedTask(null)}
+        onConfirm={() => {
+          setSelectedTask(null)
+        }}
+      />
+    </div>
   )
 }
 
