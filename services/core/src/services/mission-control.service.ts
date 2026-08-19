@@ -30,12 +30,12 @@ class MissionControlService {
 
     const blockers = tasks.length
       ? await prisma.blocker.findMany({
-        where: {
-          task_id: {
-            in: tasksIds,
+          where: {
+            task_id: {
+              in: tasksIds,
+            },
           },
-        },
-      })
+        })
       : [];
 
     const blockerTaskIds = new Set(
