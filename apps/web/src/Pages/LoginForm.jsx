@@ -1,16 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  CheckCircle2,
-  Eye,
-  EyeOff,
+  AlertCircle,
   Loader2,
-  LockKeyhole,
-  Mail,
+  CheckCircle,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/useAuth'
@@ -22,171 +18,244 @@ function LoginForm() {
   const navigate = useNavigate()
   const { login } = useAuth()
 
-  // Fixture states:
-  // /login
-  // /login?state=loading
-  // /login?state=error
-  // /login?state=success
+  const fixtureState =
+    new URLSearchParams(window.location.search).get('state') || ''
 
-  const fixtureState = new URLSearchParams(
-    window.location.search,
-  ).get('state')
-
-  const isFixtureState = ['loading', 'error', 'success'].includes(
+  const initialState = ['loading', 'error', 'success'].includes(
     fixtureState,
   )
-
-  const initialStatus = isFixtureState ? fixtureState : 'idle'
+    ? fixtureState
+    : 'idle'
 
   const [email, setEmail] = useState(
-    fixtureState === 'error' ? 'invalid-email@task' : '',
+    fixtureState === 'error' ? 'admin@shiftcore.com' : '',
   )
-
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-
-  const [status, setStatus] = useState(initialStatus)
+  const [status, setStatus] = useState(initialState)
 
   const [errorMessage, setErrorMessage] = useState(
-    fixtureState === 'error' ? 'Invalid email or password' : '',
+    fixtureState === 'error'
+      ? 'Invalid email or password'
+      : '',
   )
 
+  const [errors, setErrors] = useState({
+    email: '',
+    password: '',
+  })
+
   const isLoading = status === 'loading'
+  const isError = status === 'error'
   const isSuccess = status === 'success'
-  const hasError = status === 'error'
-
-  const clearError = () => {
-    if (hasError) {
-      setStatus('idle')
-      setErrorMessage('')
-    }
-  }
-
-  const handleEmailChange = (event) => {
-    setEmail(event.target.value)
-    clearError()
-  }
-
-  const handlePasswordChange = (event) => {
-    setPassword(event.target.value)
-    clearError()
-  }
 
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    setErrorMessage('')
+    const newErrors = {
+      email: '',
+      password: '',
+    }
 
-    if (!email.trim() || !password.trim()) {
-      setStatus('error')
-      setErrorMessage('Email and password are required')
+    if (!email.trim()) {
+      newErrors.email = 'Email is required'
+    }
+
+    if (!password.trim()) {
+      newErrors.password = 'Password is required'
+    }
+
+    if (newErrors.email || newErrors.password) {
+      setErrors(newErrors)
+      setStatus('idle')
+      setErrorMessage('')
       return
     }
 
-    setStatus('loading')
+    setErrors({
+      email: '',
+      password: '',
+    })
 
-    // Fixture-driven authentication for R24-06.
-    // Real API integration is intentionally deferred.
+    setStatus('loading')
+    setErrorMessage('')
+
+    // Fixture authentication for R24-06.
     setTimeout(() => {
-      const isValidCredentials =
+      const valid =
         email.trim() === VALID_EMAIL &&
         password === VALID_PASSWORD
 
-      if (!isValidCredentials) {
+      if (!valid) {
         setStatus('error')
         setErrorMessage('Invalid email or password')
         return
       }
 
-      // Auth skeleton only.
-      // No token or browser storage is used.
       login()
       setStatus('success')
 
       setTimeout(() => {
-        navigate('/mission-control', { replace: true })
-      }, 500)
+        navigate('/mission-control', {
+          replace: true,
+        })
+      }, 1200)
     }, 800)
   }
 
-  const inputBaseClass =
-    'h-14 w-full rounded-xl border bg-white text-base text-[#051A3E] shadow-none outline-none transition-colors'
+  const inputClass = (hasError) => `
+    h-12
+    w-full
+    rounded-[4px]
+    border
+    bg-white
+    px-3
+    text-base
+    text-[#0B1C30]
+    shadow-none
+    focus-visible:ring-0
+    transition-colors
+    duration-200
+    ${
+      hasError
+        ? 'border-[#BA1A1A] focus-visible:border-[#BA1A1A] hover:border-[#BA1A1A]'
+        : 'border-[#C5C6CD] focus-visible:border-[#1E293B] hover:border-[#8B95A6]'
+    }
+    disabled:bg-[#F5F5F5]
+    disabled:text-[#8B95A6]
+    disabled:cursor-not-allowed
+  `
 
-  const normalInputClass = `${inputBaseClass}
-    border-[#C7CFDF]
-    placeholder:text-[#78849B]
-    focus-visible:border-[#0052CC]
-    focus-visible:ring-2
-    focus-visible:ring-[#0052CC]/15`
+  const clearFieldError = (field) => {
+    setErrors((current) => ({
+      ...current,
+      [field]: '',
+    }))
 
-  const errorInputClass = `${inputBaseClass}
-     border-[#BA1A1A]
-     placeholder:text-[#78849B]
-     focus-visible:border-[#BA1A1A]
-     focus-visible:ring-2
-     focus-visible:ring-[#BA1A1A]/15`
+    if (isError) {
+      setStatus('idle')
+      setErrorMessage('')
+    }
+  }
 
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mt-8 space-y-6"
+      className="mt-8 flex w-full flex-col gap-6"
     >
+      {/* Error feedback */}
+      {isError && (
+        <div
+          role="alert"
+          className="
+            flex
+            min-h-[54px]
+            w-full
+            items-start
+            gap-2
+            rounded-r-[4px]
+            border-l-4
+            border-[#BA1A1A]
+            bg-[#FFDAD6]
+            px-4
+            py-3
+            text-sm
+            text-[#93000A]
+            animate-in
+            fade-in
+            slide-in-from-top-2
+            duration-300
+          "
+        >
+          <AlertCircle className="mt-0.5 size-5 shrink-0" />
+
+          <span className="leading-5">
+            {errorMessage}
+          </span>
+        </div>
+      )}
+
+      {/* Success feedback */}
+      {isSuccess && (
+        <div
+          role="status"
+          className="
+            flex
+            min-h-[54px]
+            w-full
+            items-start
+            gap-2
+            rounded-r-[4px]
+            border-l-4
+            border-[#2E7D32]
+            bg-[#E8F5E9]
+            px-4
+            py-3
+            text-sm
+            text-[#1B5E20]
+            animate-in
+            fade-in
+            slide-in-from-top-2
+            duration-300
+          "
+        >
+          <CheckCircle className="mt-0.5 size-5 shrink-0" />
+
+          <span className="leading-5">
+            Signed in successfully. Redirecting...
+          </span>
+        </div>
+      )}
+
       {/* Email */}
-      <div className="space-y-2">
+      <div className="flex w-full flex-col gap-1">
         <Label
           htmlFor="email"
-          className={`text-sm font-semibold ${
-            hasError ? 'text-[#BA1A1A]' : 'text-[#051A3E]'
-          }`}
+          className="text-sm font-medium text-[#0B1C30]"
         >
-          Email
+          Email Address
         </Label>
 
-        <div className="relative">
-          <Mail
-            aria-hidden="true"
-            className={`absolute left-4 top-1/2 size-5 -translate-y-1/2 ${
-              hasError ? 'text-[#BA1A1A]' : 'text-[#6B7890]'
-            }`}
-          />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="admin@shiftcore.local"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value)
+            clearFieldError('email')
+          }}
+          disabled={isLoading || isSuccess}
+          aria-invalid={Boolean(errors.email)}
+          aria-describedby={
+            errors.email ? 'email-error' : undefined
+          }
+          className={inputClass(Boolean(errors.email))}
+        />
 
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="name@company.com"
-            value={email}
-            onChange={handleEmailChange}
-            disabled={isLoading || isSuccess}
-            aria-invalid={hasError}
-            aria-describedby={hasError ? 'login-error' : undefined}
-            className={`pl-12 pr-4 ${hasError ? errorInputClass : normalInputClass}`}
-          />
-        </div>
+        {errors.email && (
+          <p
+            id="email-error"
+            className="text-sm text-[#BA1A1A]"
+          >
+            {errors.email}
+          </p>
+        )}
       </div>
 
       {/* Password */}
-      <div className="space-y-2">
+      <div className="flex w-full flex-col gap-1">
         <Label
           htmlFor="password"
-          className={`text-sm font-semibold ${
-            hasError ? 'text-[#BA1A1A]' : 'text-[#051A3E]'
-          }`}
+          className="text-sm font-medium text-[#0B1C30]"
         >
           Password
         </Label>
 
-        <div className="relative">
-          <LockKeyhole
-            aria-hidden="true"
-            className={`absolute left-4 top-1/2 size-5 -translate-y-1/2 ${
-              hasError ? 'text-[#BA1A1A]' : 'text-[#6B7890]'
-            }`}
-          />
-
+        <div className="relative w-full">
           <Input
             id="password"
             name="password"
@@ -194,108 +263,100 @@ function LoginForm() {
             autoComplete="current-password"
             placeholder="••••••••"
             value={password}
-            onChange={handlePasswordChange}
+            onChange={(event) => {
+              setPassword(event.target.value)
+              clearFieldError('password')
+            }}
             disabled={isLoading || isSuccess}
-            aria-invalid={hasError}
-            aria-describedby={hasError ? 'login-error' : undefined}
-            className={`pl-12 pr-12 ${hasError ? errorInputClass : normalInputClass}`}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={
+              errors.password
+                ? 'password-error'
+                : undefined
+            }
+            className={`${inputClass(Boolean(errors.password))} pr-11`}
           />
 
           <button
             type="button"
-            aria-label={
-              showPassword ? 'Hide password' : 'Show password'
+            onClick={() =>
+              setShowPassword((value) => !value)
             }
-            onClick={() => setShowPassword((value) => !value)}
             disabled={isLoading || isSuccess}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7890] transition-colors hover:text-[#0052CC] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {showPassword ? (
-              <EyeOff className="size-5" />
-            ) : (
-              <Eye className="size-5" />
-            )}
-          </button>
+            aria-label={
+              showPassword
+                ? 'Hide password'
+                : 'Show password'
+            }
+            className="
+              absolute
+              right-3
+              top-1/2
+              -translate-y-1/2
+              text-[#515F74]
+              transition-colors
+              hover:text-[#1E293B]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          />
+
         </div>
 
-        {/* Error */}
-        {hasError && (
+        {errors.password && (
           <p
-            id="login-error"
-            role="alert"
-            className="text-sm font-medium text-[#BA1A1A]"
+            id="password-error"
+            className="text-sm text-[#BA1A1A]"
           >
-            {errorMessage}
+            {errors.password}
           </p>
         )}
       </div>
 
-      {/* Remember me + Forgot password */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Checkbox
-            id="remember-me"
-            checked={rememberMe}
-            onCheckedChange={(checked) =>
-              setRememberMe(checked === true)
-            }
-            disabled={isLoading || isSuccess}
-            className="size-5 rounded-[4px] border-[#9AA8BD] data-[state=checked]:border-[#0052CC] data-[state=checked]:bg-[#0052CC] data-[state=checked]:text-white"
-          />
-
-          <Label
-            htmlFor="remember-me"
-            className="cursor-pointer text-sm font-normal text-[#33415C]"
-          >
-            Remember me
-          </Label>
-        </div>
-
-        <button
-          type="button"
-          className="text-sm font-medium text-[#0052CC] transition-colors hover:text-[#0047B3]"
-          onClick={() => {}}
-        >
-          Forgot Password?
-        </button>
-      </div>
-
-      {/* Success */}
-      {isSuccess && (
-        <div
-          role="status"
-          className="flex min-h-14 items-center gap-3 rounded-xl border border-[#16A34A]/25 bg-[#F0FDF4] px-4 py-3 text-sm font-medium text-[#168A4A]"
-        >
-          <CheckCircle2 className="size-5 shrink-0 text-[#16A34A]" />
-
-          <span>Login Successful</span>
-        </div>
-      )}
-
       {/* Submit */}
-      <Button
-        type="submit"
-        disabled={isLoading || isSuccess}
-        className={`h-14 w-full rounded-xl text-base font-semibold text-white shadow-none transition-colors ${
-          isSuccess
-            ? 'bg-[#4F86D9] hover:bg-[#4F86D9]'
-            : 'bg-[#0052CC] hover:bg-[#0047B3]'
-        }`}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="size-5 animate-spin" />
-            Authenticating...
-          </>
-        ) : isSuccess ? (
-          <>
-            <CheckCircle2 className="size-5" />
-            Login Successful
-          </>
-        ) : (
-          'Sign In'
-        )}
-      </Button>
+      <div className="w-full pt-2">
+        <Button
+          type="submit"
+          disabled={isLoading || isSuccess}
+          className={`
+            flex
+            h-12
+            w-full
+            items-center
+            justify-center
+            gap-2
+            rounded-[4px]
+            text-sm
+            font-medium
+            text-white
+            shadow-none
+            transition-all
+            duration-300
+            ${
+              isSuccess
+                ? 'bg-[#2E7D32] hover:bg-[#1B5E20]'
+                : isLoading
+                  ? 'cursor-not-allowed bg-[#1E293B]'
+                  : 'bg-[#1E293B] hover:bg-[#111827] active:bg-[#0D1218]'
+            }
+            ${(isLoading || isSuccess) && 'disabled:opacity-100'}
+          `}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 shrink-0 animate-spin" />
+              <span>Signing in...</span>
+            </>
+          ) : isSuccess ? (
+            <>
+              <CheckCircle className="size-4 shrink-0" />
+              <span>Signed in</span>
+            </>
+          ) : (
+            'Sign In'
+          )}
+        </Button>
+      </div>
     </form>
   )
 }

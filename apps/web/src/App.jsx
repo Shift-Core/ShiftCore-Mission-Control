@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from './Pages/Login'
 import MissionControl from './Pages/MissionControl'
 import ProtectedRoute from './components/ProtectedRoute'
+import SignInUnavailable from './Pages/SignInUnavailable'
 
 function App() {
   return (
@@ -17,7 +18,13 @@ function App() {
         element={<Login />}
       />
 
+      <Route
+        path="/sign-in-unavailable"
+        element={<SignInUnavailable />}
+      />
+
       <Route element={<ProtectedRoute />}>
+      
         <Route
           path="/mission-control"
           element={<MissionControl />}
@@ -28,6 +35,7 @@ function App() {
         path="*"
         element={<Navigate to="/login" replace />}
       />
+    
     </Routes>
   )
 }
