@@ -33,6 +33,34 @@ export class AppError extends Error {
     );
   }
 
+  static authRequired(message = ERROR_MESSAGES.authRequired): AppError {
+    return new AppError(
+      message,
+      HTTP_STATUS.unauthorized,
+      ERROR_CODES.authRequired,
+    );
+  }
+
+  static authInvalid(message = ERROR_MESSAGES.authInvalid): AppError {
+    return new AppError(
+      message,
+      HTTP_STATUS.unauthorized,
+      ERROR_CODES.authInvalid,
+    );
+  }
+
+  static authExpired(message = ERROR_MESSAGES.authExpired): AppError {
+    return new AppError(
+      message,
+      HTTP_STATUS.unauthorized,
+      ERROR_CODES.authExpired,
+    );
+  }
+
+  static forbidden(message = ERROR_MESSAGES.forbidden): AppError {
+    return new AppError(message, HTTP_STATUS.forbidden, ERROR_CODES.forbidden);
+  }
+
   static notFound(
     message = ERROR_MESSAGES.routeNotFound,
     errors: TFieldError[] = [],
