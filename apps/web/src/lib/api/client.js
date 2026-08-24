@@ -16,7 +16,8 @@ export const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
-  config.headers.set('Accept', 'application/json')
+  config.headers = config.headers || {}
+  config.headers['Accept'] = 'application/json'
   return config
 })
 
