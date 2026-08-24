@@ -8,15 +8,16 @@ import apiClient from './client'
 
 /**
  * @typedef {Object} User
- * @property {UUID} id
+ * @property {String} id
+ * @property {String} name
  * @property {String} email
- * @property {'Lead' | 'Admin' | 'Member'} role
- * @property {UUID} teamId
+ * @property {'Lead' | 'Super' | 'Core' | 'Identity'} role
+ * @property {String | null} teamId
  */
 
 /**
  * @typedef {Object} LoginRes
- * @property {Date} expiresAt
+ * @property {String} expiresAt
  * @property {User} user
  */
 
@@ -109,11 +110,11 @@ import apiClient from './client'
 /** @type {ApiEndpoint<LoginReq, LoginRes>} */
 const loginEndpoint = {
   method: 'POST',
-  path: '/identity/auth/login',
+  path: '/identity/v1/auth/login',
   request: (data) => {
     return apiClient.request({
       method: 'POST',
-      url: '/identity/auth/login',
+      url: '/identity/v1/auth/login',
       data,
     })
   },
@@ -123,11 +124,11 @@ const loginEndpoint = {
 /** @type {ApiEndpoint<void, MissionControlRes>} */
 const missionControlEndpoint = {
   method: 'GET',
-  path: '/core/mission-control',
+  path: '/core/v1/mission-control',
   request: () => {
     return apiClient.request({
       method: 'GET',
-      url: '/core/mission-control',
+      url: '/core/v1/mission-control',
     })
   },
 }
@@ -135,11 +136,11 @@ const missionControlEndpoint = {
 /** @type {ApiEndpoint<UpdateTaskStatusReq, MissionControlTask>} */
 const updateTaskStatusEndpoint = {
   method: 'PATCH',
-  path: '/core/tasks/:id/status',
+  path: '/core/v1/tasks/:id/status',
   request: ({ id }) => {
     return apiClient.request({
       method: 'PATCH',
-      url: `/core/tasks/${encodeURIComponent(id)}/status`,
+      url: `/core/v1/tasks/${encodeURIComponent(id)}/status`,
     })
   },
 }
