@@ -22,8 +22,20 @@ import apiClient from './client'
  */
 
 /**
+ * @typedef {Object} AuthMeRes
+ * @property {User} user
+ */
+
+/**
+ * @typedef {Object} AuthMeReq
+ * @property {AbortSignal} [signal]
+ */
+
+/** @typedef {Object} LogoutRes */
+
+/**
  * @typedef {Object} MissionControlProject
- * @property {String} iid
+ * @property {String} id
  * @property {String} code
  * @property {String} name
  * @property {'Planned' | 'Active' | 'Paused' | 'Closed'} status
@@ -34,10 +46,10 @@ import apiClient from './client'
  * @property {String} id
  * @property {String} name
  * @property {String} projectId
- * @property {'Planned' | 'Active' | 'Closed' | 'Cancelled'} 
+ * @property {'Planned' | 'Active' | 'Closed' | 'Cancelled'} status
  * @property {String} goal
- * @property {Date} startDate 
- * @property {Date} endDate 
+ * @property {String} startDate
+ * @property {String} endDate
  */
 
 /**
@@ -49,7 +61,7 @@ import apiClient from './client'
  * @property {String} sprintId
  * @property {'ToDo' | 'InProgress' | 'Done'} status
  * @property {String} title
- * @property {Date} updatedAt
+ * @property {String} updatedAt
  * @property {Boolean} blocked
  */
 
@@ -80,7 +92,7 @@ import apiClient from './client'
  * @property {String} schemaVersion
  * @property {MissionControlProject} project
  * @property {MissionControlSprint} sprint
- * @property {Array<MissionControlTask>} task
+ * @property {Array<MissionControlTask>} tasks
  * @property {Array<MissionControlActiveBlocker>} activeBlockers
  * @property {MissionControlKpis} kpis
  */
@@ -88,6 +100,11 @@ import apiClient from './client'
 /**
  * @typedef {Object} UpdateTaskStatusReq
  * @property {String} id
+ */
+
+/**
+ * @typedef {Object} MissionControlReq
+ * @property {AbortSignal} [signal]
  */
 
 /**
@@ -120,15 +137,41 @@ const loginEndpoint = {
   },
 }
 
+/** @type {ApiEndpoint<AuthMeReq, AuthMeRes>} */
+const authMeEndpoint = {
+  method: 'GET',
+  path: '/identity/v1/auth/me',
+  request: ({ signal } = {}) => {
+    return apiClient.request({
+      method: 'GET',
+      url: '/identity/v1/auth/me',
+      signal,
+    })
+  },
+}
 
-/** @type {ApiEndpoint<void, MissionControlRes>} */
+/** @type {ApiEndpoint<void, LogoutRes>} */
+const logoutEndpoint = {
+  method: 'POST',
+  path: '/identity/v1/auth/logout',
+  request: () => {
+    return apiClient.request({
+      method: 'POST',
+      url: '/identity/v1/auth/logout',
+    })
+  },
+}
+
+
+/** @type {ApiEndpoint<MissionControlReq, MissionControlRes | null>} */
 const missionControlEndpoint = {
   method: 'GET',
   path: '/core/v1/mission-control',
-  request: () => {
+  request: ({ signal } = {}) => {
     return apiClient.request({
       method: 'GET',
       url: '/core/v1/mission-control',
+      signal,
     })
   },
 }
@@ -147,6 +190,8 @@ const updateTaskStatusEndpoint = {
 
 export const endpoints = Object.freeze({
   login: Object.freeze(loginEndpoint),
+  authMe: Object.freeze(authMeEndpoint),
+  logout: Object.freeze(logoutEndpoint),
   missionControl: Object.freeze(missionControlEndpoint),
   updateTaskStatus: Object.freeze(updateTaskStatusEndpoint),
 })

@@ -1,6 +1,11 @@
+import { Loader2 } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+
+import { useAuth } from '@/context/useAuth'
+
 import LoginForm from './LoginForm'
 
-function ShiftCoreIcon() {
+const ShiftCoreIcon = () => {
   return (
     <div
       className="flex size-12 items-center justify-center rounded-md bg-[#1F293B]"
@@ -20,7 +25,25 @@ function ShiftCoreIcon() {
   )
 }
 
-function Login() {
+const Login = () => {
+  const { isAuthenticated, isAuthLoading } = useAuth()
+
+  if (isAuthLoading) {
+    return (
+      <main
+        role="status"
+        className="flex min-h-screen items-center justify-center bg-white text-[#1E293B]"
+      >
+        <Loader2 className="size-7 animate-spin" aria-hidden="true" />
+        <span className="sr-only">Checking your session...</span>
+      </main>
+    )
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/mission-control" replace />
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-white px-4 py-8">
       <section
