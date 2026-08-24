@@ -2,14 +2,17 @@ import { useState } from 'react'
 
 import { AuthContext } from './auth-context'
 
-function AuthProvider({ children }) {
+const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
 
-  const login = () => {
+  const login = (authenticatedUser) => {
+    setUser(authenticatedUser)
     setIsAuthenticated(true)
   }
 
   const logout = () => {
+    setUser(null)
     setIsAuthenticated(false)
   }
 
@@ -17,6 +20,7 @@ function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        user,
         login,
         logout,
       }}
