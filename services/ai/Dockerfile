@@ -9,12 +9,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY services/ai/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-COPY fixtures ./fixtures
+COPY services/ai/app ./app
+COPY services/ai/fixtures ./fixtures
+COPY --chmod=0444 contracts/ai.openapi.yaml ./contracts/ai.openapi.yaml
 
 EXPOSE 8000
 

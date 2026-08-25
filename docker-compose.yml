@@ -182,8 +182,8 @@ services:
   # ---------------------------------------------------------------------------
   ai:
     build:
-      context: ./services/ai
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/ai/Dockerfile
     container_name: shiftcore-ai
     restart: unless-stopped
     environment:
@@ -195,6 +195,7 @@ services:
       JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
       SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
       AI_PROVIDER: ${AI_PROVIDER:-deterministic}
+      AI_DOCS_ACCESS_KEY: ${AI_DOCS_ACCESS_KEY:-}
     networks:
       - shiftcore-net
     expose:
