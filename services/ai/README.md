@@ -100,6 +100,35 @@ SC_TOKEN_COOKIE_NAME=sc_token
 The preview does not persist generated summaries and does not require an
 external AI provider.
 
+## Protected API Documentation
+
+Application authentication and documentation access are separate security
+boundaries. The weekly-summary preview continues to require the Identity-issued
+`sc_token` RS256 JWT. `AI_DOCS_ACCESS_KEY` grants access only to Swagger and the
+canonical static AI OpenAPI contract; it cannot authenticate an application
+API request.
+
+Set a non-empty `AI_DOCS_ACCESS_KEY` only in the ignored root `.env`. The
+sanitized `.env.example` intentionally leaves it empty. When the variable is
+missing or empty, documentation access fails closed.
+
+Through the Nginx gateway, open Swagger at:
+
+```text
+GET http://localhost/api/docs?key=<docs-access-key>
+```
+
+Swagger loads `../../contracts/ai.openapi.yaml`, the repository's canonical AI
+contract, through the protected `/api/docs/openapi.yaml` transport route. That
+route is not a second contract source. FastAPI's default `/docs`, `/redoc`, and
+`/openapi.json` routes are disabled. Nginx disables access logging for the two
+exact documentation routes and strips the query string before forwarding
+requests to AI/Data.
+
+Query-string credentials can remain in browser history or user-created traces.
+Do not share documentation URLs or screenshots containing the key, and use
+HTTPS outside local development.
+
 For the current R24-12 contract, the request uses the approved
 `core-mission-control-v1` KPI snapshot shape. The browser-copied snapshot is a
 release evidence contract, not cryptographic provenance; broader authoritative
@@ -334,4 +363,3 @@ R24-05 does not implement:
 * background generation jobs;
 * summary review, edit, approval, or publishing;
 * AI recommendations or management decisions.
-
