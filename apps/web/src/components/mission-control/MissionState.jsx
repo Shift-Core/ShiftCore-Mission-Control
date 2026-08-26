@@ -1,18 +1,18 @@
-function MissionState({ type = "loading", onRetry }) {
+const MissionState = ({ type = 'loading', description, onRetry }) => {
   const states = {
     loading: {
-      title: "Loading Mission Control",
-      description: "Loading your mission control data...",
+      title: 'Loading Mission Control',
+      description: 'Loading your mission control data...',
     },
 
     empty: {
-      title: "No Active Sprint",
+      title: 'No Active Sprint',
       description:
         "The task board and metrics are currently dormant. Start a new sprint to begin tracking progress, blockers, and team velocity.",
     },
 
     error: {
-      title: "Unable to Load Dashboard Data",
+      title: 'Unable to Load Dashboard Data',
       description:
         "We are currently experiencing difficulty retrieving your mission control metrics. This may be due to a temporary network issue or server unavailability.",
     },
@@ -20,7 +20,7 @@ function MissionState({ type = "loading", onRetry }) {
 
   const current = states[type] ?? states.loading
 
-  if (type === "loading") {
+  if (type === 'loading') {
     return (
       <div className="rounded-[5px] border border-[#c9ced8] bg-white p-12">
         <div className="mx-auto max-w-xl animate-pulse">
@@ -39,7 +39,7 @@ function MissionState({ type = "loading", onRetry }) {
   return (
     <div className="rounded-[5px] border border-[#c9ced8] bg-white px-6 py-16 text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[#eef3ff] text-3xl text-[#5b6575]">
-        {type === "error" ? "!" : "▣"}
+        {type === 'error' ? '!' : '▣'}
       </div>
 
       <h2 className="mt-6 text-[25px] font-bold text-[#10213a]">
@@ -47,10 +47,10 @@ function MissionState({ type = "loading", onRetry }) {
       </h2>
 
       <p className="mx-auto mt-3 max-w-[620px] text-[16px] leading-6 text-[#687386]">
-        {current.description}
+        {description || current.description}
       </p>
 
-      {type === "empty" && (
+      {type === 'empty' && (
         <div className="mt-7 flex justify-center gap-3">
           <button
             type="button"
@@ -68,7 +68,7 @@ function MissionState({ type = "loading", onRetry }) {
         </div>
       )}
 
-      {type === "error" && (
+      {type === 'error' && (
         <div className="mt-7 flex justify-center gap-3">
           <button
             type="button"

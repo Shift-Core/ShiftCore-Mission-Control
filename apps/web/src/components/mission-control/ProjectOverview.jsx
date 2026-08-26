@@ -1,4 +1,16 @@
-function ProjectOverview() {
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+})
+
+const formatDate = (value) => {
+  const date = new Date(value)
+
+  return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
+}
+
+const ProjectOverview = ({ project, sprint }) => {
   return (
     <section className="rounded-[5px] border border-[#c9ced8] bg-white px-7 py-7">
       <div className="grid gap-7 md:grid-cols-[1fr_1fr_2fr]">
@@ -8,7 +20,7 @@ function ProjectOverview() {
           </p>
 
           <p className="mt-2 text-[18px] font-semibold text-[#10213a]">
-            Core Infrastructure
+            {project.name}
           </p>
         </div>
 
@@ -18,7 +30,7 @@ function ProjectOverview() {
           </p>
 
           <p className="mt-2 text-[18px] font-semibold text-[#10213a]">
-            Sprint 24 - Stability Alpha
+            {sprint.name}
           </p>
         </div>
 
@@ -28,7 +40,7 @@ function ProjectOverview() {
           </p>
 
           <p className="mt-2 text-[17px] text-[#243249]">
-            Improve database query latency and harden auth middleware
+            {sprint.goal}
           </p>
         </div>
       </div>
@@ -39,7 +51,7 @@ function ProjectOverview() {
         </p>
 
         <p className="mt-2 text-[16px] text-[#243249]">
-          Aug 20, 2026 - Sep 03, 2026
+          {formatDate(sprint.startDate)} - {formatDate(sprint.endDate)}
         </p>
       </div>
     </section>
