@@ -1,4 +1,13 @@
-function StartTaskDialog({ task, open, onCancel, onConfirm }) {
+import { AlertCircle, Loader2 } from 'lucide-react'
+
+const StartTaskDialog = ({
+  task,
+  open,
+  isSubmitting,
+  errorMessage,
+  onCancel,
+  onConfirm,
+}) => {
   if (!open || !task) {
     return null
   }
@@ -26,7 +35,7 @@ function StartTaskDialog({ task, open, onCancel, onConfirm }) {
               </h2>
 
               <p className="text-[13px] text-[#687386]">
-                Task ID: {task.id}
+                Task ID: {task.code}
               </p>
             </div>
           </div>
@@ -34,13 +43,13 @@ function StartTaskDialog({ task, open, onCancel, onConfirm }) {
 
         <div className="px-6 py-6">
           <p className="text-[15px] leading-6 text-[#344054]">
-            You are about to start work on{" "}
+            You are about to start work on{' '}
             <strong>"{task.title}"</strong>. This will transition
-            the task status from{" "}
+            the task status from{' '}
             <span className="rounded bg-[#eef2f7] px-1.5 py-0.5 text-xs font-semibold">
               TO DO
-            </span>{" "}
-            to{" "}
+            </span>{' '}
+            to{' '}
             <span className="rounded bg-[#dbe9ff] px-1.5 py-0.5 text-xs font-semibold text-[#2862c7]">
               IN PROGRESS
             </span>
@@ -48,17 +57,27 @@ function StartTaskDialog({ task, open, onCancel, onConfirm }) {
           </p>
 
           <div className="mt-5 border-l-4 border-[#172338] bg-[#f4f6fa] px-4 py-3 text-[14px] leading-5 text-[#52617a]">
-            Starting this task will automatically assign you as
-            the primary owner and notify the project stakeholders.
-            Ensure you have reviewed all technical requirements
-            before proceeding.
+            Starting this task changes its status to In Progress.
+            Mission Control data will refresh after the update is
+            completed.
           </div>
+
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mt-4 flex items-start gap-2 border-l-4 border-[#BA1A1A] bg-[#FFDAD6] px-4 py-3 text-sm text-[#93000A]"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-[#e1e5eb] px-6 py-4">
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSubmitting}
             className="border border-[#c9ced8] bg-white px-4 py-2 text-[14px] font-medium text-[#243249]"
           >
             Cancel
@@ -67,9 +86,17 @@ function StartTaskDialog({ task, open, onCancel, onConfirm }) {
           <button
             type="button"
             onClick={onConfirm}
-            className="bg-[#172338] px-4 py-2 text-[14px] font-medium text-white"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 bg-[#172338] px-4 py-2 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
           >
-            🚀 Confirm Start
+            {isSubmitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              '🚀 Confirm Start'
+            )}
           </button>
         </div>
       </div>

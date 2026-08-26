@@ -1,24 +1,126 @@
-import { useState } from "react"
+import { useCallback, useEffect, useState } from 'react'
 
+import ActiveBlocker from '@/components/mission-control/ActiveBlocker'
+import MissionHeader from '@/components/mission-control/MissionHeader'
+import MissionState from '@/components/mission-control/MissionState'
+import ProjectOverview from '@/components/mission-control/ProjectOverview'
+import SprintMetrics from '@/components/mission-control/SprintMetrics'
+import StartTaskDialog from '@/components/mission-control/StartTaskDialog'
+import TaskBoard from '@/components/mission-control/TaskBoard'
+import WeeklySummary from '@/components/mission-control/WeeklySummary'
+import { useAuth } from '@/context/useAuth'
+import { endpoints } from '@/lib/api/endpoints'
+import { ApiError } from '@/lib/api/envelope'
 
-import MissionHeader from "../components/mission-control/MissionHeader"
-import ProjectOverview from "../components/mission-control/ProjectOverview"
-import SprintMetrics from "../components/mission-control/SprintMetrics"
-import TaskBoard from "../components/mission-control/TaskBoard"
-import ActiveBlocker from "../components/mission-control/ActiveBlocker"
-import WeeklySummary from "../components/mission-control/WeeklySummary"
-import StartTaskDialog from "../components/mission-control/StartTaskDialog"
-import MissionState from "../components/mission-control/MissionState"
-
-function MissionControl() {
-  const params = new URLSearchParams(window.location.search)
-  const fixtureState = params.get("state") || "default"
-
+const MissionControl = () => {
+  const { clearSession } = useAuth()
+  const [dashboard, setDashboard] = useState(null)
+  const [viewState, setViewState] = useState('loading')
+  const [errorMessage, setErrorMessage] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
+  const [isStartingTask, setIsStartingTask] = useState(false)
+  const [taskActionError, setTaskActionError] = useState('')
 
-  const showState = ["loading", "empty", "error"].includes(
-    fixtureState,
+  const loadMissionControl = useCallback(
+    (signal) => {
+      return endpoints.missionControl
+        .request({ signal })
+        .then((response) => {
+          if (!response.data) {
+            setDashboard(null)
+            setViewState('empty')
+            return
+          }
+
+          setDashboard(response.data)
+          setViewState('success')
+        })
+        .catch((error) => {
+          if (
+            error instanceof ApiError &&
+            error.errorCode === 'REQUEST_CANCELLED'
+          ) {
+            return
+          }
+
+          if (error instanceof ApiError && error.status === 401) {
+            clearSession()
+            return
+          }
+
+          setDashboard(null)
+          setViewState('error')
+          setErrorMessage(
+            error instanceof ApiError
+              ? error.message
+              : 'Unable to load Mission Control data.',
+          )
+        })
+    },
+    [clearSession],
   )
+
+  const retryMissionControl = () => {
+    setViewState('loading')
+    setErrorMessage('')
+    loadMissionControl()
+  }
+
+  const selectTaskToStart = (task) => {
+    setTaskActionError('')
+    setSelectedTask(task)
+  }
+
+  const cancelStartTask = () => {
+    if (isStartingTask) {
+      return
+    }
+
+    setTaskActionError('')
+    setSelectedTask(null)
+  }
+
+  const startSelectedTask = async () => {
+    if (!selectedTask || isStartingTask) {
+      return
+    }
+
+    setIsStartingTask(true)
+    setTaskActionError('')
+
+    try {
+      await endpoints.updateTaskStatus.request({
+        id: selectedTask.id,
+      })
+
+      setSelectedTask(null)
+      setViewState('loading')
+      await loadMissionControl()
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession()
+        return
+      }
+
+      setTaskActionError(
+        error instanceof ApiError
+          ? error.message
+          : 'Unable to start this task. Please try again.',
+      )
+    } finally {
+      setIsStartingTask(false)
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    loadMissionControl(controller.signal)
+
+    return () => controller.abort()
+  }, [loadMissionControl])
+
+  const showDashboard = viewState === 'success' && dashboard
 
   return (
     <div className="min-h-screen bg-[#f7f8fc] text-[#10213a]">
@@ -26,33 +128,45 @@ function MissionControl() {
 
       <main className="px-5 py-7 md:px-7">
         <div className="mx-auto max-w-[1388px]">
-          {showState ? (
-            <MissionState
-              type={fixtureState}
-              onRetry={() => {
-                window.location.href = "/mission-control"
-              }}
-            />
-          ) : (
+          {showDashboard ? (
             <>
-              <ProjectOverview />
+              <ProjectOverview
+                project={dashboard.project}
+                sprint={dashboard.sprint}
+              />
 
               <div className="mt-6">
-                <SprintMetrics />
+                <SprintMetrics kpis={dashboard.kpis} />
               </div>
 
               <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_445px]">
                 <TaskBoard
-                  onStart={(task) => setSelectedTask(task)}
+                  tasks={dashboard.tasks}
+                  onStart={selectTaskToStart}
                 />
 
                 <aside className="space-y-6">
-                  <ActiveBlocker />
+                  <ActiveBlocker
+                    blockers={dashboard.activeBlockers}
+                    tasks={dashboard.tasks}
+                  />
 
-                  <WeeklySummary />
+                  <WeeklySummary
+                    schemaVersion={dashboard.schemaVersion}
+                    sprint={dashboard.sprint}
+                    kpis={dashboard.kpis}
+                    activeBlockers={dashboard.activeBlockers}
+                    tasks={dashboard.tasks}
+                  />
                 </aside>
               </div>
             </>
+          ) : (
+            <MissionState
+              type={viewState}
+              description={errorMessage}
+              onRetry={retryMissionControl}
+            />
           )}
         </div>
       </main>
@@ -73,10 +187,10 @@ function MissionControl() {
       <StartTaskDialog
         task={selectedTask}
         open={Boolean(selectedTask)}
-        onCancel={() => setSelectedTask(null)}
-        onConfirm={() => {
-          setSelectedTask(null)
-        }}
+        isSubmitting={isStartingTask}
+        errorMessage={taskActionError}
+        onCancel={cancelStartTask}
+        onConfirm={startSelectedTask}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
@@ -10,52 +10,73 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/useAuth'
+import { endpoints } from '@/lib/api/endpoints'
+import { ApiError } from '@/lib/api/envelope'
 
-const VALID_EMAIL = 'lead@shiftcore.local'
-const VALID_PASSWORD = 'password123'
+const EMPTY_FIELD_ERRORS = {
+  email: '',
+  password: '',
+}
 
-function LoginForm() {
+const UNAVAILABLE_ERROR_CODES = new Set([
+  'HTTP_ERROR',
+  'INVALID_RESPONSE',
+  'NETWORK_ERROR',
+  'REQUEST_TIMEOUT',
+])
+
+const getFieldErrors = (error) => {
+  if (!(error instanceof ApiError)) {
+    return EMPTY_FIELD_ERRORS
+  }
+
+  return error.errors.reduce(
+    (fieldErrors, currentError) => {
+      const field = currentError.field?.toLowerCase()
+
+      if (field === 'email' || field === 'password') {
+        fieldErrors[field] = currentError.message
+      }
+
+      return fieldErrors
+    },
+    { ...EMPTY_FIELD_ERRORS },
+  )
+}
+
+const LoginForm = () => {
   const navigate = useNavigate()
   const { login } = useAuth()
 
-  const fixtureState =
-    new URLSearchParams(window.location.search).get('state') || ''
-
-  const initialState = ['loading', 'error', 'success'].includes(
-    fixtureState,
-  )
-    ? fixtureState
-    : 'idle'
-
-  const [email, setEmail] = useState(
-    fixtureState === 'error' ? 'admin@shiftcore.com' : '',
-  )
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [status, setStatus] = useState(initialState)
-
-  const [errorMessage, setErrorMessage] = useState(
-    fixtureState === 'error'
-      ? 'Invalid email or password'
-      : '',
-  )
-
-  const [errors, setErrors] = useState({
-    email: '',
-    password: '',
-  })
+  const [status, setStatus] = useState('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [errors, setErrors] = useState(EMPTY_FIELD_ERRORS)
 
   const isLoading = status === 'loading'
   const isError = status === 'error'
   const isSuccess = status === 'success'
 
-  const handleSubmit = (event) => {
+  useEffect(() => {
+    if (!isSuccess) {
+      return undefined
+    }
+
+    const redirectTimer = window.setTimeout(() => {
+      navigate('/mission-control', {
+        replace: true,
+      })
+    }, 800)
+
+    return () => window.clearTimeout(redirectTimer)
+  }, [isSuccess, navigate])
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const newErrors = {
-      email: '',
-      password: '',
-    }
+    const newErrors = { ...EMPTY_FIELD_ERRORS }
 
     if (!email.trim()) {
       newErrors.email = 'Email is required'
@@ -72,35 +93,40 @@ function LoginForm() {
       return
     }
 
-    setErrors({
-      email: '',
-      password: '',
-    })
+    setErrors({ ...EMPTY_FIELD_ERRORS })
 
     setStatus('loading')
     setErrorMessage('')
 
-    // Fixture authentication for R24-06.
-    setTimeout(() => {
-      const valid =
-        email.trim() === VALID_EMAIL &&
-        password === VALID_PASSWORD
+    try {
+      const response = await endpoints.login.request({
+        email: email.trim(),
+        password,
+      })
 
-      if (!valid) {
-        setStatus('error')
-        setErrorMessage('Invalid email or password')
+      login(response.data.user)
+      setStatus('success')
+    } catch (error) {
+      const serverIsUnavailable =
+        error instanceof ApiError &&
+        (UNAVAILABLE_ERROR_CODES.has(error.errorCode) ||
+          (error.status !== null && error.status >= 500))
+
+      if (serverIsUnavailable) {
+        navigate('/sign-in-unavailable', {
+          replace: true,
+        })
         return
       }
 
-      login()
-      setStatus('success')
-
-      setTimeout(() => {
-        navigate('/mission-control', {
-          replace: true,
-        })
-      }, 1200)
-    }, 800)
+      setErrors(getFieldErrors(error))
+      setStatus('error')
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : 'Unable to sign in. Please try again.',
+      )
+    }
   }
 
   const inputClass = (hasError) => `
