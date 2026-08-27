@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ShiftCore Mission Control - Safe Local Environment Initializer (R24-04)
-# AC-2: Runs from a clean clone without a real provider key or committed secret.
-# This is configuration validation only — not an application build or runtime claim.
+# ShiftCore Mission Control - Local Environment Initializer
+# Creates the local environment file and validates the completed Compose stack.
 # =============================================================================
 
 set -euo pipefail
@@ -25,12 +24,12 @@ else
   echo "    Created .env from .env.example"
 fi
 
-# 2. Sanity checks (no secrets, no real provider key required)
+# 2. Sanity checks (no real provider key required for the deterministic release)
 if grep -qE '^[[:space:]]*AI_API_KEY=[^[:space:]#]+' .env 2>/dev/null; then
   echo "WARNING: AI_API_KEY appears to be set. The committed release path does not require a real provider key."
 fi
 
-# 3. Confirm required directories exist (contract only)
+# 3. Confirm the completed monorepo structure is present
 REQUIRED_DIRS=(
   apps/web
   services/identity
@@ -51,7 +50,7 @@ for d in "${REQUIRED_DIRS[@]}"; do
 done
 echo "    Required monorepo directories present"
 
-# 4. Validate Compose configuration (no build, no start)
+# 4. Validate the Compose configuration without starting containers
 if command -v docker >/dev/null 2>&1; then
   echo "    Validating docker compose configuration..."
   if docker compose config --quiet; then
@@ -65,13 +64,10 @@ else
 fi
 
 echo ""
-echo "==> Local environment contract is ready."
-echo "    Next steps (owned by service owners, out of scope for R24-04):"
-echo "      - Implement real Dockerfiles and application code"
-echo "      - Add migrations / seeds under identity and core schemas"
-echo "      - Finalize Nginx routing"
-echo ""
-echo "    Safe commands for this bootstrap:"
-echo "      docker compose config          # validate only"
-echo "      cat .env                       # inspect (contains only local-dev placeholders)"
+echo "==> Local environment is ready."
+echo "    Next steps:"
+echo "      ./scripts/generate-jwt-keys.sh"
+echo "      docker compose up -d --build"
+echo "      docker compose exec core yarn db:seed"
+echo "      ./scripts/smoke-test.sh"
 echo ""

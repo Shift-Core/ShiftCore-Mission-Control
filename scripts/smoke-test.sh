@@ -15,8 +15,55 @@ FAIL=0
 ok()   { echo "  [PASS] $1"; PASS=$((PASS+1)); }
 fail() { echo "  [FAIL] $1"; FAIL=$((FAIL+1)); }
 
+compose_service_block() {
+  local service="$1"
+
+  awk -v service="$service" '
+    $0 == "  " service ":" {
+      in_service = 1
+      next
+    }
+    in_service && $0 ~ /^  [[:alnum:]_-]+:$/ {
+      exit
+    }
+    in_service {
+      print
+    }
+  '
+}
+
+read_dotenv_value() {
+  local key="$1"
+  local value
+
+  value="$(sed -n -E "s/^[[:space:]]*${key}[[:space:]]*=[[:space:]]*(.*)$/\\1/p" .env 2>/dev/null | tail -n 1)"
+  value="${value%%#*}"
+  value="$(printf '%s' "$value" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  value="$(printf '%s' "$value" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
+
+  printf '%s' "$value"
+}
+
+NGINX_PORT="${NGINX_HTTP_PORT:-}"
+if [[ -z "$NGINX_PORT" && -f .env ]]; then
+  NGINX_PORT="$(read_dotenv_value NGINX_HTTP_PORT)"
+fi
+NGINX_PORT="${NGINX_PORT:-80}"
+
+if ! [[ "$NGINX_PORT" =~ ^[0-9]+$ ]] || (( NGINX_PORT < 1 || NGINX_PORT > 65535 )); then
+  echo "ERROR: NGINX_HTTP_PORT must be an integer between 1 and 65535." >&2
+  exit 1
+fi
+
+NGINX_URL="${NGINX_SMOKE_URL:-http://localhost:${NGINX_PORT}}"
+
 echo "==> ShiftCore health smoke"
 echo "    Root: $ROOT_DIR"
+echo "    Gateway: $NGINX_URL"
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -33,10 +80,11 @@ else
     fail "docker compose config invalid"
   fi
 
-  # Extract service names that have a healthcheck block
+  # Inspect each complete service block rather than relying on a fixed line
+  # window; environment and dependency sections vary in length.
   CFG="$(docker compose config 2>/dev/null || true)"
   for svc in postgres identity core ai web nginx; do
-    if echo "$CFG" | grep -A20 "^  ${svc}:" | grep -q "healthcheck:"; then
+    if printf '%s\n' "$CFG" | compose_service_block "$svc" | grep -q '^    healthcheck:'; then
       ok "healthcheck defined for service: $svc"
     else
       fail "healthcheck missing for service: $svc"
@@ -76,7 +124,6 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "-- Live endpoint checks (optional — only if stack is up)"
 
-NGINX_URL="${NGINX_SMOKE_URL:-http://localhost:80}"
 LIVE_RAN=false
 
 check_live() {

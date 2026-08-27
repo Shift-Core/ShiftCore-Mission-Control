@@ -144,9 +144,11 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 4000
       DATABASE_URL: "postgresql://${CORE_DB_USER:-core_app}:${CORE_DB_PASSWORD:-core_local_dev_only}@postgres:5432/${POSTGRES_DB:-shiftcore}?schema=core"
+      TEAM_ID: ${TEAM_ID:-3b5f3ec5-cc27-4d68-8f4d-d80545d6b9c1}
       JWT_ISSUER: ${JWT_ISSUER:-shiftcore-identity}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-shiftcore-api}
       JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/secrets/jwt_public}
+      SC_TOKEN_COOKIE_NAME: ${SC_TOKEN_COOKIE_NAME:-sc_token}
     volumes:
       # Hot reload application code
       - ./services/core/src:/app/src
