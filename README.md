@@ -4,7 +4,7 @@
 
   <p>
     <a href="https://platform.shiftcore.workers.dev/"><img alt="ShiftCore website" src="https://img.shields.io/badge/ShiftCore-Website-22D3EE"></a>
-    <a href="https://team-handbook-wq9.pages.dev/"><img alt="ShiftCore Team Handbook" src="https://img.shields.io/badge/Team-Handbook-8B5CF6"></a>
+    <a href="https://platform.shiftcore.workers.dev/docs/handbook"><img alt="ShiftCore Team Handbook" src="https://img.shields.io/badge/Team-Handbook-8B5CF6"></a>
     <a href="https://react.dev/"><img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&amp;logoColor=black"></a>
     <a href="https://dotnet.microsoft.com/"><img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet"></a>
     <a href="https://nodejs.org/"><img alt="Node.js and TypeScript" src="https://img.shields.io/badge/Node.js-TypeScript-339933?logo=node.js&amp;logoColor=white"></a>
@@ -166,7 +166,7 @@ not represent the repository's current completed state.
 - [Core Service](services/core/README.md)
 - [AI/Data Service](services/ai/README.md)
 - [OpenAPI Contracts](contracts/)
-- [Team Handbook](https://team-handbook-wq9.pages.dev/)
+- [Team Handbook](https://platform.shiftcore.workers.dev/docs/handbook)
 - [ShiftCore GitHub Organization](https://github.com/Shift-Core)
 - [Project Wiki](https://github.com/Shift-Core/ShiftCore-Mission-Control/wiki)
 
