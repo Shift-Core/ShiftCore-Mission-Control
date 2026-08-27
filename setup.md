@@ -69,6 +69,11 @@ OpenSSL must be available in `PATH`, then run:
 powershell -ExecutionPolicy Bypass -File .\scripts\generate-jwt-keys.ps1
 ```
 
+The PowerShell helper is syntax-reviewed but has not yet been runtime-tested on
+Windows. Until that verification is recorded, Windows users should confirm that
+both `secrets/jwt_private.pem` and `secrets/jwt_public.pem` are created before
+starting the stack.
+
 Both scripts preserve existing keys. Pass `--force` on Linux/macOS or `-Force`
 on Windows only when you intentionally want to replace them. Replacing keys
 invalidates existing sessions and requires restarting the affected containers.
@@ -97,13 +102,14 @@ docker compose exec core yarn db:seed
 
 ## 5. Open and Verify the Application
 
-Open the application through Nginx:
+Open the application through Nginx at:
 
 ```text
-http://localhost
+http://localhost:<NGINX_HTTP_PORT>
 ```
 
-If you changed `NGINX_HTTP_PORT`, include that port in the URL.
+Use the value configured in `.env`. When the value is `80`, the port may be
+omitted and the address is simply `http://localhost`.
 
 Sign in with the seeded Lead account:
 
@@ -112,17 +118,9 @@ Email:    lead@shiftcore.local
 Password: value of SEED_DEFAULT_PASSWORD in .env
 ```
 
-Check the public service health endpoints:
-
-```bash
-curl -f http://localhost/health/frontend
-curl -f http://localhost/health/identity
-curl -f http://localhost/health/core
-curl -f http://localhost/health/ai
-```
-
-On Linux/macOS, the repository smoke test validates the Compose contract and
-checks live health endpoints when the stack is running:
+On Linux/macOS, the repository smoke test reads `NGINX_HTTP_PORT` from `.env`,
+validates the Compose contract, and checks the public health endpoints when the
+stack is running:
 
 ```bash
 ./scripts/smoke-test.sh
@@ -131,10 +129,13 @@ checks live health endpoints when the stack is running:
 On Windows PowerShell:
 
 ```powershell
-Invoke-WebRequest http://localhost/health/frontend -UseBasicParsing
-Invoke-WebRequest http://localhost/health/identity -UseBasicParsing
-Invoke-WebRequest http://localhost/health/core -UseBasicParsing
-Invoke-WebRequest http://localhost/health/ai -UseBasicParsing
+$gatewayPort = ((Get-Content .env | Select-String '^NGINX_HTTP_PORT=').Line -split '=', 2)[1].Trim()
+$gatewayUrl = "http://localhost:$gatewayPort"
+
+Invoke-WebRequest "$gatewayUrl/health/frontend" -UseBasicParsing
+Invoke-WebRequest "$gatewayUrl/health/identity" -UseBasicParsing
+Invoke-WebRequest "$gatewayUrl/health/core" -UseBasicParsing
+Invoke-WebRequest "$gatewayUrl/health/ai" -UseBasicParsing
 ```
 
 ## 6. View Logs
@@ -237,8 +238,9 @@ docker compose exec core yarn db:seed
 When `AI_DOCS_ACCESS_KEY` is configured, open:
 
 ```text
-http://localhost/api/docs?key=<your-local-docs-access-key>
+http://localhost:<NGINX_HTTP_PORT>/api/docs?key=<your-local-docs-access-key>
 ```
 
+Use the gateway port configured in `.env`; omit the port only when it is `80`.
 The documentation key grants access only to API documentation. It does not
 authenticate application API requests.

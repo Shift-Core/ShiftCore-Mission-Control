@@ -2,6 +2,8 @@ param(
     [switch]$Force
 )
 
+# Verification status: syntax-reviewed, but not yet runtime-tested on Windows.
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 

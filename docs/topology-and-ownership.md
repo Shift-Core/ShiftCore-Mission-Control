@@ -13,9 +13,11 @@ Nginx Gateway          (infra/nginx) — only public entry point
   |-- /api/core/v1/*     -> services/core      -----> core schema
   |-- /api/ai/v1/*       -> services/ai
   |-- /health/*          -> Service readiness
-  |
-  +-- services/ai -------> services/core   (internal HTTP, Docker network)
 ```
+
+The Web application calls Core and AI/Data through Nginx. AI/Data receives the
+weekly-summary input in its authenticated request and does not call Core
+directly.
 
 PostgreSQL: single database `shiftcore`
 - Schema `identity` (Identity API / EF Core)

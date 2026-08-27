@@ -4,6 +4,7 @@
 
   <p>
     <a href="https://platform.shiftcore.workers.dev/"><img alt="ShiftCore website" src="https://img.shields.io/badge/ShiftCore-Website-22D3EE"></a>
+    <a href="https://team-handbook-wq9.pages.dev/"><img alt="ShiftCore Team Handbook" src="https://img.shields.io/badge/Team-Handbook-8B5CF6"></a>
     <a href="https://react.dev/"><img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&amp;logoColor=black"></a>
     <a href="https://dotnet.microsoft.com/"><img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet"></a>
     <a href="https://nodejs.org/"><img alt="Node.js and TypeScript" src="https://img.shields.io/badge/Node.js-TypeScript-339933?logo=node.js&amp;logoColor=white"></a>
@@ -119,6 +120,13 @@ shutdown—are maintained in the **[Setup Guide](setup.md)**.
 
 ## Release Evidence
 
+The verified MVP is published as
+**[v0.1.0](https://github.com/Shift-Core/ShiftCore-Mission-Control/releases/tag/v0.1.0)**,
+with the runtime evidence recorded in
+**[Release Verification Issue #30](https://github.com/Shift-Core/ShiftCore-Mission-Control/issues/30)**.
+Version `v0.1.1` is intentionally planned as a documentation and local-setup
+follow-up; it has not been published yet.
+
 The MVP demo was scheduled for 24 August 2026. Jira estimated the selected
 release work at **2 weeks and 4 hours (`2w 4h`)**. The screenshots below are
 point-in-time Jira planning/reporting evidence; their displayed progress may
@@ -148,6 +156,7 @@ not represent the repository's current completed state.
 ## Documentation
 
 - [ShiftCore Website](https://platform.shiftcore.workers.dev/)
+- [Mission Control Project Documentation](https://platform.shiftcore.workers.dev/docs/mission-control)
 - [Setup Guide](setup.md)
 - [Topology and Ownership](docs/topology-and-ownership.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
