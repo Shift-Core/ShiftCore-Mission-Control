@@ -2,7 +2,7 @@
 
 First off, thank you for considering contributing to ShiftCore Mission Control! It's people like you that make this project a great collaborative environment.
 
-This guide outlines our process for contributing to the repository. Please ensure you also read the [Team Handbook](https://github.com/Shift-Core/team-handbook) for our broader engineering culture and rules.
+This guide outlines our process for contributing to the repository. Please ensure you also read the [Team Handbook](https://platform.shiftcore.workers.dev/docs/handbook) for our broader engineering culture and rules.
 
 ---
 
@@ -23,7 +23,7 @@ Our core branches are:
    ```
    *(e.g., `feat/SMC-94-identity-foundation`, `fix/login-bug`, `docs/update-readme`)*
 
-2. **Commit your changes:** Follow our [Branch and Commit Rules](https://github.com/Shift-Core/team-handbook/blob/main/docs/git/branch-and-commit-rules.md). Use Conventional Commits format (e.g., `feat(identity): add login route`).
+2. **Commit your changes:** Follow the [Team Handbook](https://platform.shiftcore.workers.dev/docs/handbook). Use Conventional Commits format (e.g., `feat(identity): add login route`).
 
 3. **Push to your branch:**
    ```bash
@@ -43,4 +43,4 @@ Before opening a PR, ensure that:
 - You have verified your work locally (see [Setup Guide](setup.md) for how to run the stack).
 - Any new features are properly documented in the corresponding `README.md` or `ARCHITECTURE.md` files.
 
-For full guidelines on reviewing and submitting PRs, see the [Pull Request Guide](https://github.com/Shift-Core/team-handbook/blob/main/docs/git/pull-request-guide.md).
+For full guidelines on reviewing and submitting PRs, see the [Team Handbook](https://platform.shiftcore.workers.dev/docs/handbook).
