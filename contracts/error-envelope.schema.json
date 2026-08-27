@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shiftcore.local/contracts/error-envelope.schema.json",
+  "title": "ShiftCore Error Envelope",
+  "description": "Shared error response shape for all APIs (R24-04 contract stub)",
+  "type": "object",
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "details": { "type": "object" },
+        "requestId": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

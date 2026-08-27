@@ -1,0 +1,311 @@
+# R24-11 — Single minimal PR workflow
+# Covers: config validation + Identity + Core + AI + Web
+# Changed-area only. Full builds/tests stay with service owners.
+# Keep minimal — no production deploy, no heavy matrices.
+
+name: PR Minimal Checks
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+concurrency:
+  group: pr-minimal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Always run — config + paths validation
+  # ---------------------------------------------------------------------------
+  config-validation:
+    name: Config validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker compose
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          echo "docker compose config: OK"
+
+      - name: Check required paths exist
+        run: |
+          required=(
+            apps/web
+            services/identity
+            services/core
+            services/ai
+            infra/nginx
+            infra/postgres/bootstrap
+            contracts
+            scripts/init-local-env.sh
+            .env.example
+          )
+
+          for p in "${required[@]}"; do
+            if [ ! -e "$p" ]; then
+              echo "Missing required path: $p"
+              exit 1
+            fi
+          done
+
+          echo "Required paths: OK"
+
+      - name: Check init script contract
+        run: |
+          test -f scripts/init-local-env.sh
+
+          # Must not require a real provider key.
+          if grep -qE '^[[:space:]]*AI_API_KEY=[^[:space:]#]+' .env.example 2>/dev/null; then
+            echo "ERROR: .env.example must not contain a real AI_API_KEY value"
+            exit 1
+          fi
+
+          echo "init-local-env contract: OK"
+
+  # ---------------------------------------------------------------------------
+  # Identity — Owner: Mohamed Tawfik (.NET 8 / ASP.NET Core)
+  # ---------------------------------------------------------------------------
+  identity:
+    name: Identity — dotnet build
+    runs-on: ubuntu-latest
+    needs: config-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            DIFF_RANGE="${BASE}...${HEAD}"
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              DIFF_RANGE="HEAD^..HEAD"
+            else
+              DIFF_RANGE="${{ github.event.before }}...${{ github.sha }}"
+            fi
+          fi
+
+          if git diff --name-only "$DIFF_RANGE" | grep -qE '^(services/identity/|docker-compose.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup .NET 8
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: dotnet restore
+
+      - name: Build (Release)
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: dotnet build --no-restore -c Release
+
+      - name: Verify EF migrations compile
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/identity
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.30 2>/dev/null || true
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef migrations list --no-connect
+          echo "Migrations: OK"
+
+      - name: Identity contract paths
+        if: steps.changes.outputs.run == 'true'
+        run: |
+          test -f services/identity/Dockerfile
+          test -d services/identity/Migrations
+          echo "Identity contract paths: OK"
+
+      - name: Skip
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No Identity changes — skipped"
+
+  # ---------------------------------------------------------------------------
+  # Core — Owner: Abo El Ala (Node.js / Express — placeholder)
+  # ---------------------------------------------------------------------------
+  core:
+    name: Core — paths check
+    runs-on: ubuntu-latest
+    needs: config-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            DIFF_RANGE="${BASE}...${HEAD}"
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              DIFF_RANGE="HEAD^..HEAD"
+            else
+              DIFF_RANGE="${{ github.event.before }}...${{ github.sha }}"
+            fi
+          fi
+
+          if git diff --name-only "$DIFF_RANGE" | grep -qE '^(services/core/|docker-compose.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Core contract paths
+        if: steps.changes.outputs.run == 'true'
+        run: |
+          test -f services/core/Dockerfile
+          echo "Core contract paths: OK"
+          # TODO (Abo El Ala): add npm ci + npm test when package.json and source are added
+
+      - name: Skip
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No Core changes — skipped"
+
+  # ---------------------------------------------------------------------------
+  # AI — Owner: Peter (FastAPI / Python 3.12 — has real tests)
+  # ---------------------------------------------------------------------------
+  ai:
+    name: AI — pytest
+    runs-on: ubuntu-latest
+    needs: config-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            DIFF_RANGE="${BASE}...${HEAD}"
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              DIFF_RANGE="HEAD^..HEAD"
+            else
+              DIFF_RANGE="${{ github.event.before }}...${{ github.sha }}"
+            fi
+          fi
+
+          if git diff --name-only "$DIFF_RANGE" | grep -qE '^(services/ai/|docker-compose.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python 3.12
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/ai
+        run: pip install --no-cache-dir -r requirements.txt
+
+      - name: Run pytest
+        if: steps.changes.outputs.run == 'true'
+        working-directory: services/ai
+        env:
+          AI_PROVIDER: deterministic
+        run: python -m pytest tests/ -v
+
+      - name: AI contract paths
+        if: steps.changes.outputs.run == 'true'
+        run: |
+          test -f services/ai/Dockerfile
+          echo "AI contract paths: OK"
+
+      - name: Skip
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No AI changes — skipped"
+
+  # ---------------------------------------------------------------------------
+  # Web — Owner: Web owner (React placeholder — no source yet)
+  # ---------------------------------------------------------------------------
+  web:
+    name: Web — paths check
+    runs-on: ubuntu-latest
+    needs: config-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            DIFF_RANGE="${BASE}...${HEAD}"
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              DIFF_RANGE="HEAD^..HEAD"
+            else
+              DIFF_RANGE="${{ github.event.before }}...${{ github.sha }}"
+            fi
+          fi
+
+          if git diff --name-only "$DIFF_RANGE" | grep -qE '^(apps/web/|docker-compose.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Web contract paths
+        if: steps.changes.outputs.run == 'true'
+        run: |
+          test -d apps/web
+          echo "Web contract paths: OK"
+          # TODO (Web owner): add npm ci + npm test when React source is added
+
+      - name: Skip
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No Web changes — skipped"

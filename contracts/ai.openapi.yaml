@@ -1,0 +1,322 @@
+openapi: 3.0.3
+
+info:
+  title: ShiftCore AI/Data API
+  version: 0.1.0
+  description: >
+    ShiftCore AI/Data release contract. R24-12 defines the protected,
+    non-persisted deterministic weekly-summary preview endpoint using the
+    approved KPI snapshot and deterministic summary schemas.
+
+servers:
+  - url: http://ai:8000
+    description: Internal Docker Compose service
+
+paths:
+  /health:
+    get:
+      summary: Check AI/Data service health
+      operationId: getAiHealth
+      tags:
+        - health
+      responses:
+        "200":
+          description: AI/Data service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: ai
+                mode: deterministic
+
+  /api/ai/v1/summaries/weekly/preview:
+    post:
+      summary: Generate deterministic weekly-summary preview
+      operationId: previewWeeklySummary
+      tags:
+        - summaries
+      description: >
+        Generates a non-persisted deterministic weekly-summary preview from
+        the approved KPI snapshot. The same material input produces the same
+        material sections; generatedAt may differ between requests.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SummaryPreviewRequest"
+      responses:
+        "200":
+          description: Weekly summary preview generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryPreviewResponse"
+
+        "401":
+          description: Missing, invalid, or expired authenticated session
+          headers:
+            X-Request-Id:
+              description: Request correlation identifier
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Authentication required.
+                data: null
+                errorCode: AUTH_REQUIRED
+                errors: []
+                traceId: req_example
+
+        "422":
+          description: Request validation failed
+          headers:
+            X-Request-Id:
+              description: Request correlation identifier
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Validation failed
+                data: null
+                errorCode: VALIDATION_ERROR
+                errors: []
+                traceId: req_example
+
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: sc_token
+      description: >
+        RS256-signed session JWT issued by Identity and stored in the
+        HttpOnly sc_token cookie. AI/Data validates the token using the
+        approved Identity public key.
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+        - mode
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        service:
+          type: string
+          enum:
+            - ai
+        mode:
+          type: string
+          example: deterministic
+
+    KpiSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - plannedTasks
+        - toDoTasks
+        - inProgressTasks
+        - doneTasks
+        - completionRate
+        - activeBlockers
+      properties:
+        plannedTasks:
+          type: integer
+          minimum: 0
+        toDoTasks:
+          type: integer
+          minimum: 0
+        inProgressTasks:
+          type: integer
+          minimum: 0
+        doneTasks:
+          type: integer
+          minimum: 0
+        completionRate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: >
+            Done divided by Planned multiplied by 100, rounded to one
+            decimal place. Returns 0 when Planned is 0.
+        activeBlockers:
+          type: integer
+          minimum: 0
+      description: >
+        Approved ADR-011 release KPI snapshot. plannedTasks must equal
+        toDoTasks + inProgressTasks + doneTasks.
+
+    SummaryPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - projectId
+        - sprintId
+        - snapshotSource
+        - snapshot
+      properties:
+        schemaVersion:
+          type: string
+          enum:
+            - "1.0"
+        projectId:
+          type: string
+          minLength: 1
+        sprintId:
+          type: string
+          minLength: 1
+        snapshotSource:
+          type: string
+          enum:
+            - core-mission-control-v1
+          description: >
+            Descriptive provenance label for the Core mission-control
+            snapshot. It is not cryptographic provenance.
+        snapshot:
+          $ref: "#/components/schemas/KpiSnapshot"
+
+    SummarySection:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - title
+        - content
+      properties:
+        key:
+          type: string
+          enum:
+            - progress
+            - blockers
+            - attention
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+
+    SummaryPreviewData:
+      type: object
+      additionalProperties: false
+      required:
+        - source
+        - schemaVersion
+        - projectId
+        - sprintId
+        - generatedAt
+        - sourceSnapshot
+        - sections
+        - warnings
+      properties:
+        source:
+          type: string
+          enum:
+            - deterministic
+        schemaVersion:
+          type: string
+          enum:
+            - "1.0"
+        projectId:
+          type: string
+          minLength: 1
+        sprintId:
+          type: string
+          minLength: 1
+        generatedAt:
+          type: string
+          format: date-time
+        sourceSnapshot:
+          $ref: "#/components/schemas/KpiSnapshot"
+        sections:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: >
+            Exactly three sections in this order: progress, blockers,
+            attention.
+          items:
+            $ref: "#/components/schemas/SummarySection"
+        warnings:
+          type: array
+          items:
+            type: string
+          example:
+            - provider_fallback_used
+
+    SummaryPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        message:
+          type: string
+          enum:
+            - Weekly summary preview generated
+        data:
+          $ref: "#/components/schemas/SummaryPreviewData"
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - message
+        - data
+        - errorCode
+        - errors
+        - traceId
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+
+        message:
+          type: string
+          minLength: 1
+
+        data:
+          type: object
+          nullable: true
+          example: null
+
+        errorCode:
+          type: string
+          minLength: 1
+
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+
+        traceId:
+          type: string
+          minLength: 1
